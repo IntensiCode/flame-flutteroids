@@ -1,0 +1,10 @@
+enum GamePhase {
+  inactive,
+  entering_level,
+  playing_level,
+  level_completed,
+  game_over,
+  ;
+
+  static GamePhase from(final String name) => GamePhase.values.firstWhere((e) => e.name == name);
+}
