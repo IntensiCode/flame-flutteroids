@@ -14,6 +14,7 @@ class Nuke extends PositionComponent with CollisionCallbacks, Recyclable, WorldE
 
   late double life_time;
   late double damage;
+  int _boost = 0;
 
   Nuke() {
     size.setAll(250);
@@ -25,7 +26,9 @@ class Nuke extends PositionComponent with CollisionCallbacks, Recyclable, WorldE
     priority = 1000;
   }
 
-  void reset(WorldEntity origin) {
+  void reset(WorldEntity origin, [int boost = 0]) {
+    _boost = boost;
+    size.setAll(250 + 75 * (1 + (_boost / SecondaryWeapon.max_boosts)));
     life_time = 0;
     damage = 10;
     world_pos.setFrom(origin.world_pos);
@@ -55,7 +58,7 @@ class Nuke extends PositionComponent with CollisionCallbacks, Recyclable, WorldE
     super.onCollision(intersectionPoints, other);
     if (recycled || life_time > 0.2) return;
     if (other case Hostile it when it.susceptible) {
-      it.on_hit(damage);
+      it.on_hit(damage * (1 + (_boost / SecondaryWeapon.max_boosts)));
     }
   }
 }

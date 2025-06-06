@@ -11,6 +11,8 @@ mixin _PlayerUTurn on _PlayerMovement {
 
   bool get is_turning => _uturn_phase != UTurnPhase.none;
 
+  bool get is_elevated => _uturn_phase == UTurnPhase.turning && _uturn_progress >= 0.2 && _uturn_progress <= 0.8;
+
   @override
   void handle_input(double dt) {
     if (_uturn_phase == UTurnPhase.none && keys.check(GameKey.down)) {

@@ -57,7 +57,7 @@ class PlasmaShot extends PositionComponent
     super.onCollision(intersectionPoints, other);
     if (recycled) return;
     if (other case Hostile it when it.susceptible) {
-      it.on_hit(1);
+      it.on_hit(1 * (1 + (power_boost / SecondaryWeapon.max_boosts) * 0.5));
       recycle();
     }
   }

@@ -1,12 +1,12 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
-import 'package:flame/extensions.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/core/messages.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/kinds.dart';
+import 'package:flutteroids/game/weapons/auto_target_laser.dart';
 import 'package:flutteroids/game/weapons/ion_pulse_gun.dart';
 import 'package:flutteroids/game/weapons/nuke_missile_launcher.dart';
 import 'package:flutteroids/game/weapons/plasma_emitter.dart';
@@ -16,7 +16,6 @@ import 'package:flutteroids/input/game_keys.dart';
 import 'package:flutteroids/input/shortcuts.dart';
 import 'package:flutteroids/util/auto_dispose.dart';
 import 'package:flutteroids/util/log.dart';
-import 'package:kart/kart.dart';
 import 'package:supercharged/supercharged.dart';
 
 class WeaponSystem extends Component with AutoDispose, HasAutoDisposeShortcuts, GameContext {
@@ -36,31 +35,48 @@ class WeaponSystem extends Component with AutoDispose, HasAutoDisposeShortcuts, 
     }
   }
 
+  final _extra_to_type = <ExtraId, Type>{
+    ExtraId.plasma_gun: PlasmaGun,
+    ExtraId.ion_pulse: IonPulseGun,
+    ExtraId.auto_laser: AutoTargetLaser,
+    ExtraId.plasma_ring: PlasmaEmitter,
+    ExtraId.nuke_missile: NukeMissileLauncher,
+    ExtraId.smart_bomb: SmartBomb,
+  };
+
+  final _acquired = <Type>{};
   final _primaries = <PrimaryWeapon, bool>{};
   final _secondaries = <SecondaryWeapon, int>{};
 
+  bool has_acquired(Type type) => _acquired.contains(type);
+
+  bool has_secondary() => _acquired.any((it) => it is SecondaryWeapon);
+
   void on_weapon(ExtraId id) {
-    if (id == ExtraId.plasma_gun) {
-      switch_primary_to(PlasmaGun);
-    } else if (id == ExtraId.ion_pulse) {
-      switch_primary_to(IonPulseGun);
-    } else if (id == ExtraId.plasma_ring) {
-      switch_secondary_to(PlasmaEmitter);
-    } else if (id == ExtraId.nuke_missile) {
-      switch_secondary_to(NukeMissileLauncher);
-    } else if (id == ExtraId.smart_bomb) {
-      switch_secondary_to(SmartBomb);
+    final type = _extra_to_type[id];
+    if (_primaries.keys.any((it) => it.runtimeType == type)) {
+      switch_primary_to(type!);
+      _acquired.add(type);
+    } else if (_secondaries.keys.any((it) => it.runtimeType == type)) {
+      switch_secondary_to(type!);
+      _acquired.add(type);
+    } else {
+      log_error('Unknown weapon type: $type');
+      return;
     }
   }
 
-  bool switch_primary_to(Type type, {bool force = false}) {
-    if (type == PlasmaGun) tpg.boost_power();
-
+  bool switch_primary_to(Type type, {bool by_user = false}) {
     final weapon = _primaries.keys.firstWhere((it) => it.runtimeType == type);
-    if (!force && _primaries[weapon] == true) return false;
+    if (!by_user) weapon.on_boost();
 
+    // Switch only if by_user, or if this is newly picked up.
+    if (!by_user && _primaries[weapon] == true) return false;
+
+    // If the weapon is not available, make it available.
     _primaries[weapon] = true;
 
+    // Now make sure it is the current primary weapon...
     primary_weapon?.removeFromParent();
     primary_weapon = weapon;
     add(primary_weapon!);
@@ -68,16 +84,17 @@ class WeaponSystem extends Component with AutoDispose, HasAutoDisposeShortcuts, 
     return true;
   }
 
-  void switch_secondary_to(Type type, {bool reload = true}) {
-    log_info('switch secondary to $type');
+  void switch_secondary_to(Type type, {bool reload_and_boost = true}) {
+    log_verbose('switch secondary to $type');
     final reload_count = _reload_count(type);
 
     final weapon = _secondaries.keys.firstWhere((it) => it.runtimeType == type);
-    _secondaries[weapon] = (_secondaries[weapon] ?? 0) + (reload ? reload_count : 0);
-    if (reload) log_info('reloaded $type to ${_secondaries[weapon]}');
+    _secondaries[weapon] = (_secondaries[weapon] ?? 0) + (reload_and_boost ? reload_count : 0);
+    if (reload_and_boost) log_debug('reloaded $type to ${_secondaries[weapon]}');
+    if (reload_and_boost) weapon.on_boost();
 
     if (secondary_weapon == weapon) {
-      if (dev) log_info('same secondary');
+      if (dev) log_verbose('same secondary');
       return;
     }
 
@@ -110,14 +127,14 @@ class WeaponSystem extends Component with AutoDispose, HasAutoDisposeShortcuts, 
     }
   }
 
-  late PlasmaGun tpg;
-
   @override
   void onMount() {
     super.onMount();
 
-    _primaries[tpg = PlasmaGun(player)] = true;
+    _acquired.add(PlasmaGun);
+    _primaries[PlasmaGun(player)] = true;
     _primaries[IonPulseGun(player)] = false;
+    _primaries[AutoTargetLaser(player)] = false;
 
     _secondaries[PlasmaEmitter(player, _on_fired)] = 0;
     _secondaries[NukeMissileLauncher(player, _on_fired)] = 0;
@@ -127,16 +144,16 @@ class WeaponSystem extends Component with AutoDispose, HasAutoDisposeShortcuts, 
     primary_weapon = _primaries.keys.first;
     add(primary_weapon!);
 
-    final initial = _secondaries.keys.whereNot((it) => it is SmartBomb).toList().random(level_rng);
-    switch_secondary_to(initial.runtimeType);
+    // final initial = _secondaries.keys.whereNot((it) => it is SmartBomb).toList().random(level_rng);
+    // switch_secondary_to(initial.runtimeType);
 
     if (dev || cheat) {
       onKey('[', () {
         log_info('make all weapons available');
         _primaries.forEach((key, value) => _primaries[key] = true);
-        _secondaries.forEach((key, value) => _secondaries[key] = 2);
-        switch_secondary_to(_secondaries.keys.last.runtimeType);
-        send_message(ShowInfoText(text: 'Grant All Weapons', title: 'Cheat'));
+        _secondaries.forEach((key, value) => _secondaries[key] = 10);
+        switch_secondary_to(_secondaries.keys.first.runtimeType);
+        send_message(ShowDebugText(text: 'Grant All Weapons', title: 'Cheat'));
       });
     }
   }
@@ -177,7 +194,7 @@ class WeaponSystem extends Component with AutoDispose, HasAutoDisposeShortcuts, 
     final next = bank[(index + 1) % bank.length];
     if (next.key == primary_weapon) return;
 
-    switch_primary_to(next.key.runtimeType, force: true);
+    switch_primary_to(next.key.runtimeType, by_user: true);
   }
 
   void _switch_secondary() {
@@ -192,6 +209,6 @@ class WeaponSystem extends Component with AutoDispose, HasAutoDisposeShortcuts, 
     final next = bank[(index + 1) % bank.length];
     if (next.key == secondary_weapon) return;
 
-    switch_secondary_to(next.key.runtimeType, reload: false);
+    switch_secondary_to(next.key.runtimeType, reload_and_boost: false);
   }
 }

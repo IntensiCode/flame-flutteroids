@@ -52,6 +52,14 @@ class Keys extends AutoDisposeComponent with KeyboardHandler, HasGameKeys, HasGa
 
   void consume(GameKey it) => _pressed.remove(it);
 
+  void clear([Set<GameKey> it = const {}]) {
+    for (final key in it) {
+      _pressed.remove(key);
+      _repeat.remove(key);
+      _repeat_ticks.remove(key);
+    }
+  }
+
   bool get is_some_key_pressed => _pressed.isNotEmpty;
 
   @override

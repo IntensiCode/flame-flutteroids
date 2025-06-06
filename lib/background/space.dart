@@ -54,7 +54,7 @@ class Space extends Component with AutoDispose, HasPaint {
 
     if (_shader != null) return;
 
-    log_info('load space shader');
+    log_verbose('load space shader');
     _shader = await load_shader('space.frag');
 
     _uniforms = UniformsExt<Uniform>(_shader!, {

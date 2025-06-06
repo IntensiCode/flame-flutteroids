@@ -1,3 +1,4 @@
+import 'dart:math'; // For min, sin, cos, atan2
 import 'dart:ui';
 
 import 'package:flame/collisions.dart';
@@ -9,7 +10,6 @@ import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 import 'package:flutteroids/util/log.dart';
 import 'package:flutteroids/util/mutable.dart';
-import 'package:flutteroids/util/pixelate.dart';
 import 'package:flutteroids/util/random.dart';
 import 'package:flutteroids/util/uniforms.dart';
 
@@ -21,9 +21,22 @@ class PlasmaBlob extends PositionComponent
   static FragmentShader? _shader;
 
   static Future<FragmentShader> preload() {
-    log_info('preload plasma blob shader');
+    log_verbose('preload plasma blob shader');
     return PlasmaBlob.await_shader ??= load_shader('plasma_blob.frag');
   }
+
+  static const double _homing_duration = 1.0;
+
+  final Function(WorldEntity, int) _emit_plasma_ring;
+
+  final _rect = MutRect.zero();
+  final _shade = pixel_paint();
+
+  double _initial_angle = 0.0;
+  double? _angle_change;
+  double _homing_progress = 0.0;
+  double _anim_time = level_rng.nextDoubleLimit(10);
+  int _boost = 0;
 
   PlasmaBlob(this._emit_plasma_ring) {
     anchor = Anchor.center;
@@ -37,22 +50,29 @@ class PlasmaBlob extends PositionComponent
     _shade.isAntiAlias = false;
   }
 
-  final Function(WorldEntity) _emit_plasma_ring;
+  void reset_homing(Player origin, double angle, {double? target_angle, int boost = 0}) {
+    super.reset(origin, angle);
+    _boost = boost;
 
-  final _shade = Paint();
+    _initial_angle = angle % (2 * pi);
+    _homing_progress = 0.0;
+
+    if (target_angle != null) {
+      // Calculate the shortest angular distance
+      var angle_diff = target_angle - _initial_angle;
+
+      // Wrap the difference to [-π, π] range
+      while (angle_diff > pi) angle_diff -= 2 * pi;
+      while (angle_diff < -pi) angle_diff += 2 * pi;
+
+      _angle_change = angle_diff;
+    }
+
+    _anim_time = level_rng.nextDoubleLimit(10);
+  }
 
   @override
   double get base_speed => 200;
-
-  double _anim_time = level_rng.nextDoubleLimit(10);
-
-  @override
-  void reset(Player origin, double angle) {
-    super.reset(origin, angle);
-    _anim_time = level_rng.nextDoubleLimit(10);
-    _img?.dispose();
-    _img = null;
-  }
 
   @override
   onLoad() {
@@ -64,39 +84,38 @@ class PlasmaBlob extends PositionComponent
   void update(double dt) {
     super.update(dt);
     _anim_time += dt;
+    if (_angle_change != null && _homing_progress < 1.0) {
+      _lerp_towards_target_angle(dt);
+    }
   }
 
-  Image? _img;
+  void _lerp_towards_target_angle(double dt) {
+    _homing_progress += dt / _homing_duration;
+    _homing_progress = min(1.0, _homing_progress);
+    set_direction_angle(_initial_angle + _angle_change! * _homing_progress);
+  }
 
   @override
   void render(Canvas canvas) {
     final shader = _shader;
     if (shader == null) return;
-
-    _img?.dispose();
-    _img = pixelate(_rect.width.toInt(), _rect.height.toInt(), (it) {
-      shader.setFloat(0, _rect.width);
-      shader.setFloat(1, _rect.height);
-      shader.setFloat(2, _anim_time);
-      _shade.shader ??= shader;
-      it.drawRect(_rect, _shade);
-    });
-
-    _scaled.right = size.x;
-    _scaled.bottom = size.y;
-    canvas.drawImageRect(_img!, _rect, _scaled, paint);
+    _shade.shader ??= shader;
+    _rect.right = size.x;
+    _rect.bottom = size.y;
+    shader.setFloat(0, _rect.width);
+    shader.setFloat(1, _rect.height);
+    shader.setFloat(2, _anim_time);
+    canvas.drawRect(_rect, _shade);
   }
-
-  final _rect = Rect.fromLTWH(0, 0, 24, 24);
-  final _scaled = MutRect.zero();
 
   @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
     if (recycled) return;
     if (other case Hostile it when it.susceptible) {
-      it.on_hit(20);
-      _emit_plasma_ring(this);
+      final dmg = 20 + (10 * (_boost / SecondaryWeapon.max_boosts));
+      it.on_hit(dmg);
+      _emit_plasma_ring(this, _boost);
       recycle();
     }
   }

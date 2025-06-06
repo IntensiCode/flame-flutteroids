@@ -1,5 +1,6 @@
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/asteroids/asteroid.dart';
+import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/game_phase.dart';
 import 'package:flutteroids/game/common/kinds.dart';
 
@@ -28,6 +29,12 @@ class EnteringLevel with Message {
   final int number;
 }
 
+class ExtraCollected with Message {
+  ExtraCollected(this.which);
+
+  final ExtraId which;
+}
+
 class GamePhaseUpdate with Message {
   GamePhaseUpdate(this.phase);
 
@@ -38,6 +45,12 @@ class LeavingLevel with Message {
   LeavingLevel(this.next);
 
   final int next;
+}
+
+class LevelComplete with Message {
+  LevelComplete(this.message);
+
+  final String message;
 }
 
 class PlayerDestroyed with Message {

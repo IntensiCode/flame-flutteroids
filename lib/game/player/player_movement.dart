@@ -1,11 +1,11 @@
 part of 'player.dart';
 
 mixin _PlayerMovement on GameContext, VoxelRotation {
-  var max_rotation_speed = 6.0;
-  var rotation_acceleration = 3.0;
+  var max_rotation_speed = 5.0;
+  var rotation_acceleration = 2.5;
   var rotation_drag = 0.99;
 
-  var thrust_acceleration = 250.0;
+  var thrust_acceleration = 200.0;
   var max_velocity = 500.0;
   var drag = 0.99;
 

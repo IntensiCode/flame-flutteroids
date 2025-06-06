@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flame/game.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/input/game_keys.dart';
@@ -15,6 +16,8 @@ mixin Player implements Integrity {
 
   Vector2 get velocity;
 
+  NotifyingVector2 get size;
+
   double get angle;
 
   bool get weapons_hot;
@@ -23,15 +26,27 @@ mixin Player implements Integrity {
 }
 
 mixin PrimaryWeapon on Component {
+  static const int max_boosts = 10;
+
+  int boost = 0;
+
   String get display_name;
 
   Sprite get icon;
 
   // Heat (0.0 to 1.0), or -1.0 if weapon can not overheat.
   double get heat;
+
+  void on_boost() {
+    boost = (boost + 1).clamp(0, max_boosts);
+  }
 }
 
 mixin SecondaryWeapon on GameContext {
+  static const int max_boosts = 10;
+
+  int boost = 0;
+
   var button = GameKey.b_button;
 
   String get display_name;
@@ -45,6 +60,10 @@ mixin SecondaryWeapon on GameContext {
   Player get player;
 
   late Function(SecondaryWeapon) on_fired;
+
+  void on_boost() {
+    boost = (boost + 1).clamp(0, max_boosts);
+  }
 
   void set_activation_guard() => _activation_guard = 0.2;
 

@@ -20,8 +20,5 @@ mixin DirectionalProjectile on PositionComponent, WorldEntity {
   void set_direction_angle(double angle) {
     velocity.x = cos(angle) * base_speed;
     velocity.y = sin(angle) * base_speed;
-    // velocity.setValues(1, 0);
-    // velocity.rotate(angle);
-    // velocity.scale(base_speed);
   }
 }

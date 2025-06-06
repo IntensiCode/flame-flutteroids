@@ -19,6 +19,7 @@ class PlasmaRing extends PositionComponent with CollisionCallbacks, Recyclable, 
 
   double _size = 32;
   double _damage = 1;
+  int _boost = 0;
 
   PlasmaRing() {
     size.setAll(4);
@@ -29,9 +30,10 @@ class PlasmaRing extends PositionComponent with CollisionCallbacks, Recyclable, 
     paint.maskFilter = MaskFilter.blur(BlurStyle.normal, 16);
   }
 
-  void reset(WorldEntity origin) {
+  void reset(WorldEntity origin, [int boost = 0]) {
     _size = 32;
-    _damage = 1.3;
+    _boost = boost;
+    _damage = 1.3 * (1 + (_boost / SecondaryWeapon.max_boosts));
     world_pos.setFrom(origin.world_pos);
   }
 

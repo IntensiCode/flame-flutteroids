@@ -8,6 +8,7 @@ import 'package:flutteroids/util/bitmap_text.dart';
 import 'package:flutteroids/util/effects.dart';
 import 'package:flutteroids/util/extensions.dart';
 import 'package:flutteroids/util/game_script.dart';
+import 'package:flutteroids/util/log.dart';
 import 'package:flutteroids/util/messaging.dart';
 import 'package:flutteroids/util/on_message.dart';
 
@@ -31,7 +32,7 @@ extension ComponentExtensions on Component {
 
 class DebugOverlay extends GameScriptComponent {
   DebugOverlay() {
-    add(_instance = _DebugOverlay(pos_y: 480 - 16, quick: true));
+    add(_instance = _DebugOverlay(pos_y: game_height - 16, quick: true));
     priority = 10000;
   }
 
@@ -41,7 +42,8 @@ class DebugOverlay extends GameScriptComponent {
   void onMount() {
     super.onMount();
     on_message<ShowDebugText>((it) {
-      _instance.pipe.add(it..title = null);
+      log_debug('DebugOverlay: ${it.text} (title: ${it.title})');
+      _instance.pipe.add(it);
     });
   }
 }
@@ -61,8 +63,8 @@ class _DebugOverlay extends GameScriptComponent {
 
   @override
   onLoad() {
-    _title_text = added(textXY('', game_width / 2, pos_y - 15, scale: 2)..isVisible = false);
-    _text = added(textXY('', game_width / 2, pos_y + 5)..isVisible = false);
+    _title_text = added(textXY('', game_width / 2, pos_y - 15, scale: 1)..isVisible = false);
+    _text = added(textXY('', game_width / 2, pos_y)..isVisible = false);
   }
 
   @override
@@ -76,6 +78,7 @@ class _DebugOverlay extends GameScriptComponent {
     script_clear();
 
     script_after(0.0, () {
+      log_debug('DebugOverlay: show text: ${it.text} (title: ${it.title})');
       _title_text.isVisible = it.title != null;
       _title_text.change_text_in_place(it.title ?? '');
       if (it.title != null) _title_text.fadeInDeep();

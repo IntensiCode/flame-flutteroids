@@ -6,11 +6,15 @@ import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/kinds.dart';
 import 'package:flutteroids/game/projectiles/nuke.dart';
 import 'package:flutteroids/game/projectiles/nuke_missile.dart';
+import 'package:flutteroids/game/weapons/auto_target.dart';
 import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 
-class NukeMissileLauncher extends Component with GameContext, SecondaryWeapon {
+class NukeMissileLauncher extends Component with GameContext, SecondaryWeapon, AutoTarget {
+  late final _missiles = ComponentRecycler(() => NukeMissile(decals, _emit_nuke));
+  late final _nukes = ComponentRecycler(() => Nuke());
+
   NukeMissileLauncher(this.player, Function(SecondaryWeapon) on_fired) {
     super.on_fired = on_fired;
     cooldown_time = 4;
@@ -19,9 +23,6 @@ class NukeMissileLauncher extends Component with GameContext, SecondaryWeapon {
   @override
   final Player player;
 
-  late final _missiles = ComponentRecycler(() => NukeMissile(decals, _emit_nuke));
-  late final _nukes = ComponentRecycler(() => Nuke());
-
   @override
   String get display_name => 'Nuke Missile';
 
@@ -29,9 +30,7 @@ class NukeMissileLauncher extends Component with GameContext, SecondaryWeapon {
   Sprite get icon => extras.icon_for(ExtraId.nuke_missile);
 
   @override
-  void do_fire() {
-    world.add(_missiles.acquire()..reset(player, player.angle));
-  }
+  void do_fire() => world.add(_missiles.acquire()..reset(player, player.angle, boost));
 
-  _emit_nuke(WorldEntity origin) => world.add(_nukes.acquire()..reset(origin));
+  _emit_nuke(WorldEntity origin, int boost) => world.add(_nukes.acquire()..reset(origin, boost));
 }

@@ -20,16 +20,23 @@ class SmartBomb extends Component with GameContext, SecondaryWeapon {
     cooldown_time = 10;
   }
 
+  late final _smarts = ComponentRecycler(() => _DestroyEverything(world));
+
   @override
   final Player player;
-
-  late final _smarts = ComponentRecycler(() => _DestroyEverything(world));
 
   @override
   String get display_name => 'Smart Bomb';
 
   @override
   Sprite get icon => extras.icon_for(ExtraId.smart_bomb);
+
+  @override
+  void on_boost() {
+    super.on_boost();
+    final factor = 1.0 - (0.4 * (boost / SecondaryWeapon.max_boosts));
+    cooldown_time = 10 * factor.clamp(0.6, 1.0);
+  }
 
   @override
   void do_fire() {

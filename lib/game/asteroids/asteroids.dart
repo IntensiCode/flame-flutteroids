@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/asteroids/asteroid.dart';
 import 'package:flutteroids/game/common/game_context.dart';
+import 'package:flutteroids/game/common/game_phase.dart';
 import 'package:flutteroids/game/common/level.dart';
 import 'package:flutteroids/game/world/world_bounds.dart';
 import 'package:flutteroids/util/component_recycler.dart';
@@ -66,7 +67,16 @@ class Asteroids extends Component with GameContext {
   @override
   void update(double dt) {
     super.update(dt);
-    _maintain_asteroid_count();
+    switch (stage.phase) {
+      case GamePhase.inactive:
+      case GamePhase.level_info:
+        return;
+      case GamePhase.entering_level:
+      case GamePhase.playing_level:
+      case GamePhase.level_completed:
+      case GamePhase.game_over:
+        _maintain_asteroid_count();
+    }
   }
 
   void _maintain_asteroid_count() {

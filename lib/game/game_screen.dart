@@ -36,6 +36,7 @@ abstract class GameScreen extends GameScriptComponent with HasAutoDisposeShortcu
   set phase(GamePhase value) {
     if (_phase == value) return;
     _phase = value;
+    log_debug('Game phase changed to $_phase');
     send_message(GamePhaseUpdate(_phase));
   }
 
@@ -150,13 +151,13 @@ class _PauseOverlay extends GameScriptComponent with GameContext {
   }
 
   void _resume() {
-    log_info('Resuming');
+    log_debug('Resuming');
     removeFromParent();
     on_resume();
   }
 
   void _back_to_title() {
-    log_info('Exiting to title');
+    log_debug('Exiting to title');
     show_screen(Screen.title);
     _resume();
   }

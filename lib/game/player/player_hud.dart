@@ -1,25 +1,29 @@
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flutteroids/core/common.dart';
-import 'package:flutteroids/game/player/deflector_shield.dart';
+import 'package:flutteroids/game/common/extra_id.dart';
+import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
+import 'package:flutteroids/game/common/messages.dart';
+import 'package:flutteroids/game/player/deflector_shield.dart';
 import 'package:flutteroids/game/player/player.dart';
 import 'package:flutteroids/game/player/player_hud_background.dart';
 import 'package:flutteroids/game/player/player_hud_indicator.dart';
 import 'package:flutteroids/game/player/player_hud_title.dart';
 import 'package:flutteroids/game/player/weapon_system.dart';
 import 'package:flutteroids/ui/fonts.dart';
+import 'package:flutteroids/util/auto_dispose.dart';
 import 'package:flutteroids/util/bitmap_text.dart';
 import 'package:flutteroids/util/extensions.dart';
 import 'package:flutteroids/util/log.dart';
+import 'package:flutteroids/util/on_message.dart';
 
-class PlayerHud extends PositionComponent with GameContext, HasPaint {
+class PlayerHud extends PositionComponent with AutoDispose, GameContext, HasPaint {
   PlayerHud(this._player) {
     size.x = game_size.x - min(game_size.x, game_size.y) - 32;
     size.y = game_size.y;
-    log_warn("Player HUD size: $size");
+    log_verbose("Player HUD size: $size");
 
     add(PlayerHudBackground(hud_size: size));
     add(PlayerHudBackground(hud_size: Vector2(32, size.y))
@@ -32,10 +36,10 @@ class PlayerHud extends PositionComponent with GameContext, HasPaint {
       scale: 0.5,
     )..position = Vector2(16, 16));
 
-    add(_indicators = PositionComponent(position: Vector2(32, 64)));
-    _indicators.add(BitmapText(text: 'SHIELD', position: Vector2(0, 0)));
-    _indicators.add(BitmapText(text: 'INTEGRITY', position: Vector2(0, 24)));
-    _indicators.add(BitmapText(text: 'COOLDOWN', position: Vector2(0, 48)));
+    add(_indicators = PositionComponent(position: Vector2(32, 64))
+      ..add(BitmapText(text: 'SHIELD', position: Vector2(26, 0)))
+      ..add(BitmapText(text: 'INTEGRITY', position: Vector2(26, 24)))
+      ..add(BitmapText(text: 'COOLDOWN', position: Vector2(26, 48))));
 
     add(_primary = PositionComponent(position: Vector2(32, 128 + 16)));
     _primary.add(BitmapText(text: 'PRIMARY', position: Vector2(26, 0)));
@@ -45,6 +49,9 @@ class PlayerHud extends PositionComponent with GameContext, HasPaint {
 
     this.fadeInDeep();
   }
+
+  final Map<ExtraId, double> _extra_blink_timer = {};
+  final Map<ExtraId, SpriteComponent> _extra_blink_icon = {};
 
   final AsteroidsPlayer _player;
   late DeflectorShield _player_shield;
@@ -62,6 +69,7 @@ class PlayerHud extends PositionComponent with GameContext, HasPaint {
   @override
   void onMount() {
     super.onMount();
+
     _player_shield = _player.deflector_shield;
     _weapons = _player.weapon_system;
 
@@ -69,14 +77,46 @@ class PlayerHud extends PositionComponent with GameContext, HasPaint {
     double _integrity_value() => _player.integrity;
     double _cooldown_value() => _weapons.secondary_weapon != null ? 1 - (_weapons.secondary_cooldown ?? 1) : 0;
 
-    _indicators.add(PlayerHudIndicator(_shield_value)..position = Vector2(0, 0));
-    _indicators.add(PlayerHudIndicator(_integrity_value)..position = Vector2(0, 24));
-    _indicators.add(PlayerHudIndicator(_cooldown_value)..position = Vector2(0, 48));
+    final shield = _indicator_icon(Vector2(0, -1), ExtraId.shield);
+    final integrity = _indicator_icon(Vector2(0, 21), ExtraId.integrity);
+    final cooldown = _indicator_icon(Vector2(0, 45), ExtraId.cooldown);
+    _indicators
+      ..add(PlayerHudIndicator(_shield_value)..position = Vector2(26, 0))
+      ..add(PlayerHudIndicator(_integrity_value)..position = Vector2(26, 24))
+      ..add(PlayerHudIndicator(_cooldown_value)..position = Vector2(26, 48))
+      ..add(shield)
+      ..add(integrity)
+      ..add(cooldown);
+
+    _extra_blink_icon[ExtraId.shield] = shield;
+    _extra_blink_icon[ExtraId.integrity] = integrity;
+    _extra_blink_icon[ExtraId.cooldown] = cooldown;
+
+    on_message<ExtraCollected>((msg) {
+      _extra_blink_timer[msg.which] = pi / 4;
+    });
   }
+
+  SpriteComponent _indicator_icon(Vector2 pos, ExtraId extraId) => SpriteComponent()
+    ..sprite = extras.icon_for(extraId)
+    ..position = pos
+    ..size = Vector2(20, 20);
 
   @override
   void update(double dt) {
     super.update(dt);
+
+    _extra_blink_timer.updateAll((key, value) => max(0, value - dt));
+
+    for (final entry in _extra_blink_timer.entries) {
+      final extraId = entry.key;
+      final timer = entry.value;
+      if (timer <= 0) {
+        _extra_blink_icon[extraId]?.opacity = 1.0;
+      } else {
+        _extra_blink_icon[extraId]?.opacity = (sin(timer * pi * 4) + 1) / 2;
+      }
+    }
 
     try {
       _update();
@@ -111,15 +151,4 @@ class PlayerHud extends PositionComponent with GameContext, HasPaint {
       _secondary_weapon?.fadeInDeep();
     }
   }
-
-  @override
-  void render(Canvas canvas) {
-    try {
-      _render(canvas);
-    } catch (e, s) {
-      log_error('Error rendering HUD: $e', s);
-    }
-  }
-
-  void _render(Canvas canvas) {}
 }

@@ -26,7 +26,6 @@ class DeflectorShield extends PositionComponent with GameContext, HasPaint, HasT
   double auto_recharge = 0.2;
   double shield_boost = 1.0;
   double shield_factor = 50;
-  final _boost_delta = 0.09;
 
   double get energy => _energy;
 

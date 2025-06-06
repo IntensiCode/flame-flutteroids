@@ -8,6 +8,8 @@ import 'package:flame/components.dart';
 class MutableOffset extends Offset {
   MutableOffset(super.dx, super.dy);
 
+  MutableOffset.zero() : super(0, 0);
+
   void setFromO(Offset other) {
     dx = other.dx;
     dy = other.dy;

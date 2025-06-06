@@ -8,12 +8,26 @@ import 'package:flutteroids/game/common/decals.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/player/player.dart';
+import 'package:flutteroids/game/weapons/auto_target_laser.dart';
+import 'package:flutteroids/game/weapons/ion_pulse_gun.dart';
+import 'package:flutteroids/game/weapons/nuke_missile_launcher.dart';
+import 'package:flutteroids/game/weapons/plasma_emitter.dart';
+import 'package:flutteroids/game/weapons/plasma_gun.dart';
+import 'package:flutteroids/game/weapons/smart_bomb.dart';
+import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 import 'package:flutteroids/util/extensions.dart';
 import 'package:flutteroids/util/functions.dart';
 import 'package:flutteroids/util/log.dart';
 import 'package:flutteroids/util/random.dart';
+
+enum ExtrasGroup {
+  asteroid_split,
+  asteroid_destroyed,
+  boss_destroyed,
+  enemy_destroyed,
+}
 
 extension GameContextExtensions on GameContext {
   Extras get extras => cache.putIfAbsent('extras', () => Extras());
@@ -29,9 +43,39 @@ class Extras extends Component with GameContext {
 
   Sprite icon_for(ExtraId which) => _sheet.getSpriteById(which.sheet_index);
 
+  Set<ExtraId> choices_for(ExtrasGroup group) {
+    final choices = ExtraId.values.toSet();
+    if (!player.weapon_system.has_acquired(PlasmaGun)) choices.remove(ExtraId.plasma_gun);
+    if (!player.weapon_system.has_acquired(IonPulseGun)) choices.remove(ExtraId.ion_pulse);
+    if (!player.weapon_system.has_acquired(AutoTargetLaser)) choices.remove(ExtraId.auto_laser);
+    if (!player.weapon_system.has_acquired(PlasmaEmitter)) choices.remove(ExtraId.plasma_ring);
+    if (!player.weapon_system.has_acquired(NukeMissileLauncher)) choices.remove(ExtraId.nuke_missile);
+    if (!player.weapon_system.has_acquired(SmartBomb)) choices.remove(ExtraId.smart_bomb);
+    if (!player.weapon_system.has_secondary()) choices.remove(ExtraId.cooldown);
+    log_debug('Available extras: $choices');
+
+    switch (group) {
+      case ExtrasGroup.asteroid_split:
+        // Remove secondary weapons:
+        choices.removeAll(const [ExtraId.plasma_ring, ExtraId.nuke_missile, ExtraId.smart_bomb]);
+        return choices;
+      case ExtrasGroup.asteroid_destroyed:
+        return choices;
+      case ExtrasGroup.boss_destroyed:
+        // TODO Every boss spawns specific extras.
+        return choices;
+      case ExtrasGroup.enemy_destroyed:
+        // Remove secondary weapons:
+        choices.removeAll(const [ExtraId.plasma_ring, ExtraId.nuke_missile, ExtraId.smart_bomb]);
+        return choices;
+    }
+  }
+
   void spawn(WorldEntity origin, {required Set<ExtraId> choices, int? index, int? count}) {
     final pick = _pick_power_up(choices);
     if (pick == null) return;
+
+    log_debug('Spawning extra: $pick');
 
     final extra = parent?.added(_pool.acquire()..reset(pick, origin));
     if (index != null && count != null && count > 1) {
@@ -76,14 +120,18 @@ class Extras extends Component with GameContext {
     final sweep_anim = _sheet.createAnimation(row: 0, stepTime: 0.1);
 
     final sprites = <ExtraId, Sprite>{
+      // Primary weapons:
+      ExtraId.plasma_gun: _sheet.getSpriteById(8),
+      ExtraId.ion_pulse: _sheet.getSpriteById(10),
+      ExtraId.auto_laser: _sheet.getSpriteById(24),
+      // Secondary weapons:
+      ExtraId.plasma_ring: _sheet.getSpriteById(13),
+      ExtraId.nuke_missile: _sheet.getSpriteById(15),
+      ExtraId.smart_bomb: _sheet.getSpriteById(23),
+      // Other extras:
       ExtraId.cooldown: _sheet.getSpriteById(18),
       ExtraId.integrity: _sheet.getSpriteById(16),
-      ExtraId.ion_pulse: _sheet.getSpriteById(10),
-      ExtraId.nuke_missile: _sheet.getSpriteById(15),
-      ExtraId.plasma_gun: _sheet.getSpriteById(8),
-      ExtraId.plasma_ring: _sheet.getSpriteById(13),
       ExtraId.shield: _sheet.getSpriteById(17),
-      ExtraId.smart_bomb: _sheet.getSpriteById(23),
     };
     _pool = ComponentRecycler<Extra>(() => Extra(sprites, sweep_anim));
     _pool.precreate(128);
@@ -146,7 +194,10 @@ class Extra extends SpriteComponent with CollisionCallbacks, GameContext, Recycl
 
     if (_delay > 0) {
       _delay = max(0, _delay - dt);
-      if (_delay <= 0) decals.spawn(DecalKind.teleport, this);
+      if (_delay <= 0) {
+        decals.spawn(DecalKind.teleport, this);
+        _find_spot();
+      }
       return;
     }
 
@@ -175,6 +226,24 @@ class Extra extends SpriteComponent with CollisionCallbacks, GameContext, Recycl
     if (scale.x < 1) {
       scale.x = (scale.x + dt * 2).clamp(0, 1);
       scale.y = scale.x;
+    }
+  }
+
+  void _find_spot() {
+    final ox = world_pos.x;
+    final oy = world_pos.y;
+    final others = world.children.whereType<Extra>();
+
+    for (int attempts = 0; attempts < 10; attempts++) {
+      final jump_dist = 16 + attempts * 4.0;
+      for (int tries = 0; tries < 3; tries++) {
+        if (!others.any((it) => it.position.distanceTo(position) < size.x)) {
+          log_debug('Found spot for extra $which after $attempts attempts');
+          return;
+        }
+        world_pos.x = ox + level_rng.nextDoubleLimit(jump_dist) - jump_dist / 2;
+        world_pos.y = oy + level_rng.nextDoubleLimit(jump_dist) - jump_dist / 2;
+      }
     }
   }
 

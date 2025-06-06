@@ -13,6 +13,7 @@ import 'package:flutteroids/game/common/messages.dart';
 import 'package:flutteroids/game/world/world_bounds.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/component_recycler.dart';
+import 'package:flutteroids/util/log.dart';
 import 'package:flutteroids/util/random.dart';
 
 class Asteroid extends PositionComponent
@@ -76,13 +77,13 @@ class Asteroid extends PositionComponent
   void on_hit(double damage) {
     super.on_hit(damage);
 
-    if (is_destroyed)
+    if (is_destroyed) {
       split_into_two();
-    else
-      asteroid_hash += 0.1;
-
-    final factor = is_destroyed ? 10 : 40;
-    spawn_dust(asteroid_radius.toInt() ~/ factor);
+      spawn_dust(asteroid_radius.toInt() ~/ 10);
+    } else {
+      asteroid_hash += 0.03;
+      decals.spawn(DecalKind.dust, this, pos_range: asteroid_radius / 3, vel_range: 10);
+    }
   }
 
   @override

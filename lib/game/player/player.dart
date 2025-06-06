@@ -82,7 +82,9 @@ class AsteroidsPlayer extends PositionComponent
     voxel.model_scale.setValues(0.8, 0.2, 0.8);
     voxel.exhaust_length = 2;
 
-    await add(voxel);
+    await add(weapon_system..priority = 0);
+    await add(voxel..priority = 10);
+    await add(deflector_shield..priority = 20);
 
     await add(CircleHitbox(
       radius: size.x * 0.35,
@@ -96,9 +98,6 @@ class AsteroidsPlayer extends PositionComponent
     voxel.set_exhaust_gradient(2, const Color(0xE00080ff));
     voxel.set_exhaust_gradient(3, const Color(0xD00000ff));
     voxel.set_exhaust_gradient(4, const Color(0xC0000080));
-
-    await add(weapon_system);
-    await add(deflector_shield);
   }
 
   @override
@@ -109,11 +108,12 @@ class AsteroidsPlayer extends PositionComponent
   }
 
   void _handle_game_phase(GamePhase phase) {
-    log_debug('Player phase update: $phase');
-
     state_time = 0.0;
 
     switch (phase) {
+      case GamePhase.level_info:
+        state = _State.inactive;
+        isVisible = false;
       case GamePhase.entering_level:
         state = _State.inactive;
         isVisible = false;
@@ -130,6 +130,8 @@ class AsteroidsPlayer extends PositionComponent
         state = _State.inactive;
         isVisible = false;
     }
+
+    log_debug('Player phase update: $state');
   }
 
   @override
@@ -186,7 +188,7 @@ class AsteroidsPlayer extends PositionComponent
   }
 
   @override
-  bool get susceptible => state == _State.playing;
+  bool get susceptible => state == _State.playing && !is_elevated;
 
   @override
   void on_hit(double damage) {
@@ -211,6 +213,8 @@ class AsteroidsPlayer extends PositionComponent
         weapon_system.on_weapon(which);
       case ExtraId.ion_pulse:
         weapon_system.on_weapon(which);
+      case ExtraId.auto_laser:
+        weapon_system.on_weapon(which);
       case ExtraId.plasma_ring:
         weapon_system.on_weapon(which);
       case ExtraId.nuke_missile:
@@ -225,5 +229,6 @@ class AsteroidsPlayer extends PositionComponent
       case ExtraId.cooldown:
         weapon_system.on_cooldown();
     }
+    send_message(ExtraCollected(which));
   }
 }

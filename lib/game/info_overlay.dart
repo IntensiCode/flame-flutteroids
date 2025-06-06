@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flame/components.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/core/messages.dart';
 import 'package:flutteroids/util/bitmap_text.dart';
@@ -31,7 +30,8 @@ extension ComponentExtensions on Component {
 
 class InfoOverlay extends GameScriptComponent {
   InfoOverlay({Vector2? position, int priority = 9000}) {
-    add(_info = _InfoOverlay(position: position, quick: dev));
+    // add(_info = _InfoOverlay(position: position, quick: dev));
+    add(_info = _InfoOverlay(position: position, quick: false));
     super.priority = priority;
   }
 
@@ -75,7 +75,8 @@ class _InfoOverlay extends GameScriptComponent {
 
     _fade_in(it);
 
-    if (kReleaseMode && it.stay_longer) script_after(1.2, () {});
+    // if (kReleaseMode && it.stay_longer) script_after(1.2, () {});
+    if (it.stay_longer) script_after(1.2, () {});
 
     if (pipe.length > 3) {
       _fade_out_quick(it);

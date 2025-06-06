@@ -7,10 +7,11 @@ import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/kinds.dart';
 import 'package:flutteroids/game/projectiles/plasma_shot.dart';
+import 'package:flutteroids/game/weapons/auto_target.dart';
 import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 
-class PlasmaGun extends Component with GameContext, PrimaryWeapon {
+class PlasmaGun extends Component with GameContext, PrimaryWeapon, AutoTarget {
   PlasmaGun(this._player);
 
   final Player _player;
@@ -31,7 +32,11 @@ class PlasmaGun extends Component with GameContext, PrimaryWeapon {
   @override
   Sprite get icon => extras.icon_for(ExtraId.plasma_gun);
 
-  void boost_power() => PlasmaShot.power_boost = min(5, PlasmaShot.power_boost + 0.25);
+  @override
+  void on_boost() {
+    super.on_boost();
+    PlasmaShot.power_boost = min(5, PlasmaShot.power_boost + 0.25);
+  }
 
   @override
   double get heat => _current_heat / max_heat;
@@ -64,11 +69,13 @@ class PlasmaGun extends Component with GameContext, PrimaryWeapon {
     _cool_down = normal_fire_rate;
     _current_heat = (_current_heat + heat_per_shot).clamp(0.0, max_heat);
 
+    final (_, angle) = auto_target_angle(_player.world_pos, _player.angle);
     final count = 1 + PlasmaShot.power_boost.round();
+    // log_debug('Firing Plasma Gun: count=$count boost=${PlasmaShot.power_boost}');
     for (var i = 0; i < count; i++) {
       final d = pi / 48 * (i - (count - 1) / 2);
       world.add(_projectiles.acquire()
-        ..reset(_player, _player.angle)
+        ..reset(_player, angle ?? _player.angle)
         ..speed_buff = -d.abs() * 250
         ..change_direction(d));
     }
