@@ -29,8 +29,12 @@ import 'package:flutteroids/util/on_message.dart';
 class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
   @override
   Future onLoad() async {
-    await audio.preload();
     await add(space);
+    Future.delayed(Duration(milliseconds: 0)).then(_load);
+  }
+
+  Future _load(dynamic _) async {
+    await audio.preload();
     await add(level);
     await add(world);
     await world.add(asteroids);
