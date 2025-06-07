@@ -2,15 +2,12 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
-import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/util/bitmap_font.dart';
 
-class PlayerHudTitle extends PositionComponent with Snapshot {
+class AnimatedTitle extends PositionComponent with Snapshot {
   static const rotation_interval = 10.0;
   static const letter_delay = 0.2;
   static const rotation_duration = 2.0;
-
-  final _paint = pixel_paint();
 
   final String _text;
   final BitmapFont _font;
@@ -23,7 +20,7 @@ class PlayerHudTitle extends PositionComponent with Snapshot {
     (i) => Color.fromARGB(255, (i * 255 / 7).round(), (i * 255 / 7).round(), (i * 255 / 7).round()),
   );
 
-  PlayerHudTitle({
+  AnimatedTitle({
     required String text,
     required BitmapFont font,
     required double scale,
@@ -74,10 +71,8 @@ class PlayerHudTitle extends PositionComponent with Snapshot {
   @override
   void render(Canvas canvas) {
     _font.scale = _scale;
-    _font.paint.colorFilter = _paint.colorFilter;
     _font.paint.filterQuality = FilterQuality.none;
     _font.paint.isAntiAlias = false;
-    _font.paint.blendMode = _paint.blendMode;
 
     final center_y = _font.lineHeight(_scale) / 2;
 

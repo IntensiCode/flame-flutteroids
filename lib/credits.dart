@@ -71,19 +71,19 @@ class Credits extends GameScriptComponent {
     final menu = added(BasicMenu(
       keys: _keys,
       font: mini_font,
-      onSelected: (_) => pop_screen(),
+      on_selected: (_) => pop_screen(),
       spacing: 10,
     ));
 
     menu.position.setValues(game_center.x, 64);
     menu.anchor = Anchor.topCenter;
 
-    add(menu.addEntry('back', 'Back', size: Vector2(80, 24))
+    add(menu.add_entry('back', 'Back', size: Vector2(80, 24))
       ..auto_position = false
       ..position.setValues(8, game_size.y - 8)
       ..anchor = Anchor.bottomLeft);
 
-    menu.preselectEntry('back');
+    menu.preselect_entry('back');
   }
 
   @override

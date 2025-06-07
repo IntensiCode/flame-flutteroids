@@ -30,7 +30,7 @@ class BoostPlasmaGun extends Component with AutoDispose, GameContext, LevelGoal 
   @override
   void onMount() {
     on_message<AsteroidDestroyed>((msg) {
-      if (level_rng.nextDouble() < 0.25) {
+      if (level_rng.nextDouble() < 0.25 && collected_extras < 3) {
         extras.spawn(msg.asteroid, choices: {ExtraId.plasma_gun}, count: 1);
       }
     });
@@ -46,7 +46,7 @@ class BoostPlasmaGun extends Component with AutoDispose, GameContext, LevelGoal 
   void update(double dt) {
     super.update(dt);
 
-    if (stage.phase != GamePhase.play_level) return;
+    if (completed || stage.phase != GamePhase.play_level) return;
 
     if (level_time > 0) level_time = max(0.0, level_time - dt);
 

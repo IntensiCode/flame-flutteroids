@@ -37,9 +37,7 @@ mixin PrimaryWeapon on Component {
   // Heat (0.0 to 1.0), or -1.0 if weapon can not overheat.
   double get heat;
 
-  void on_boost() {
-    boost = (boost + 1).clamp(0, max_boosts);
-  }
+  void on_boost() => boost = (boost + 1).clamp(0, max_boosts);
 }
 
 mixin SecondaryWeapon on GameContext {

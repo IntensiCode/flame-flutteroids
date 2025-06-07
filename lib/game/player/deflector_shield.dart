@@ -8,6 +8,7 @@ import 'package:flutteroids/core/traits.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/kinds.dart';
 import 'package:flutteroids/game/common/messages.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/util/extensions.dart';
 import 'package:flutteroids/util/mutable.dart';
 import 'package:flutteroids/util/uniforms.dart';
@@ -93,9 +94,11 @@ class DeflectorShield extends PositionComponent with GameContext, HasPaint, HasT
       if (_energy < 0) {
         _on_depleted();
       } else if (damage >= 1) {
-        // audio.play(Sound.teleport, volume_factor: 0.25);
+        // play_sound(Sound.teleport, volume_factor: 0.25);
         // send_message(Rumble(duration: 0.2, haptic: false));
       }
+
+      play_sound(Sound.plasma, volume_factor: 0.25);
     } else {
       carrier.on_hit(damage);
     }
@@ -108,8 +111,8 @@ class DeflectorShield extends PositionComponent with GameContext, HasPaint, HasT
     _energy = max(-5, _energy / 10);
 
     send_message(Rumble(duration: 0.2, haptic: false));
-    // audio.play(Sound.emit, volume_factor: 0.25);
-    // audio.play(Sound.plasma, volume_factor: 0.25);
+    // play_sound(Sound.emit, volume_factor: 0.25);
+    // play_sound(Sound.plasma, volume_factor: 0.25);
   }
 
   final _rect = MutRect(0, 0, 0, 0);

@@ -3,35 +3,13 @@ import 'dart:async';
 import 'package:flame/components.dart' hide Timer;
 import 'package:flutter/foundation.dart';
 import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/util/auto_dispose.dart';
 import 'package:flutteroids/util/game_data.dart';
 import 'package:flutteroids/util/log.dart';
 import 'package:flutteroids/util/storage.dart';
 
 import 'audio_soloud.dart';
-
-enum Sound {
-  bonus,
-  clash,
-  emit,
-  explosion,
-  explosion_hollow,
-  flash,
-  game_over,
-  hiscore,
-  homing,
-  incoming,
-  plasma,
-  pulse,
-  shot,
-  shot1,
-  shot2,
-  swirl,
-  teleport,
-  teleport_long,
-  trigger,
-  ;
-}
 
 final audio = PlatformAudioSystem();
 
@@ -236,6 +214,12 @@ abstract class AudioSystem extends Component {
   @override
   Future onLoad() async {
     super.onLoad();
+    play_sound = (Sound sound, {double volume_factor = 1}) async {
+      return await play(sound, volume_factor: volume_factor);
+    };
+    play_one_shot = (String filename, {double volume_factor = 1, bool cache = true, bool loop = false}) async {
+      return await play_one_shot_sample(filename, volume_factor: volume_factor, cache: cache, loop: loop);
+    };
     final data = await load_data('audio');
     if (data != null) load_state(data);
   }

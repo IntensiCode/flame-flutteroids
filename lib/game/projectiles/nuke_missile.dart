@@ -64,6 +64,7 @@ class NukeMissile extends SpriteComponent
     _state = _NukeState.scanning; // Set initial state to scanning
     _initial_turn_angle = 0.0;
     _turn_progress = 0.0;
+    max_distance = DirectionalProjectile.world_size() * 2;
   }
 
   @override

@@ -44,6 +44,8 @@ class BasicMenuButton extends PositionComponent with BasicMenuEntry, HasVisibili
   @override
   set selected(bool value) => _highlighted.isVisible = value;
 
+  bool get checked => _checked?.text == 'ON';
+
   @override
   set checked(bool value) {
     _checked?.removeFromParent();

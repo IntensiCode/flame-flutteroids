@@ -2,12 +2,12 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flutter/animation.dart';
-import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/kinds.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 import 'package:flutteroids/util/extensions.dart';
@@ -41,7 +41,7 @@ class SmartBomb extends Component with GameContext, SecondaryWeapon {
   @override
   void do_fire() {
     world.add(_smarts.acquire()..reset());
-    audio.play(Sound.plasma, volume_factor: 0.5);
+    play_sound(Sound.plasma, volume_factor: 0.5);
   }
 }
 

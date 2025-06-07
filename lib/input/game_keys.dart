@@ -3,9 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutteroids/util/extensions.dart';
 import 'package:supercharged/supercharged.dart';
 
-bool invert_y_axis = true;
-bool prefer_x_over_y = true;
-
 // TODO Why soft2? Why not start and select?
 final typical_select_keys = [GameKey.a_button, GameKey.b_button, GameKey.soft2];
 

@@ -58,26 +58,28 @@ class MainController extends World
 
     if (dev) {
       onKeys(['<A-d>', '='], (_) {
-        debug = !debug;
-        log_level = debug ? LogLevel.debug : LogLevel.info;
+        debug << !~debug;
+        log_level = ~debug ? LogLevel.debug : LogLevel.info;
         show_debug("Debug Mode: $debug");
       });
       onKeys(['<A-v>'], (_) {
         if (log_level == LogLevel.verbose) {
-          log_level = debug ? LogLevel.debug : LogLevel.info;
+          log_level = ~debug ? LogLevel.debug : LogLevel.info;
         } else {
           log_level = LogLevel.verbose;
         }
       });
 
       onKeys(['1'], (_) => push_screen(Screen.game));
-      onKeys(['6'], (_) {
+      onKeys(['`'], (_) {
         pop_screen();
         _screen_holder.add(WebPlayScreen());
       });
-      onKeys(['7'], (_) => push_screen(Screen.credits));
+      onKeys(['5'], (_) => push_screen(Screen.hiscore));
+      onKeys(['6'], (_) => push_screen(Screen.credits));
+      onKeys(['7'], (_) => push_screen(Screen.controls));
       onKeys(['8'], (_) => push_screen(Screen.audio));
-      onKeys(['9'], (_) => push_screen(Screen.controls));
+      onKeys(['9'], (_) => push_screen(Screen.video));
       onKeys(['0'], (_) => show_screen(Screen.title));
     }
   }

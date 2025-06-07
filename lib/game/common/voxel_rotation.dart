@@ -1,10 +1,9 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
-import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/voxel_entity.dart';
 
-mixin VoxelRotation on PositionComponent, GameContext {
+mixin VoxelRotation on PositionComponent {
   late final VoxelEntity voxel;
 
   final _wobble_matrix = Matrix3.identity();

@@ -2,20 +2,20 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:flame/components.dart';
-import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/animated_title.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/game_phase.dart';
 import 'package:flutteroids/game/common/hiscore.dart';
 import 'package:flutteroids/game/common/messages.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/game/info_overlay.dart';
 import 'package:flutteroids/game/player/deflector_shield.dart';
 import 'package:flutteroids/game/player/player.dart';
 import 'package:flutteroids/game/player/player_hud_background.dart';
 import 'package:flutteroids/game/player/player_hud_indicator.dart';
-import 'package:flutteroids/game/player/player_hud_title.dart';
 import 'package:flutteroids/game/player/weapon_system.dart';
 import 'package:flutteroids/ui/fonts.dart';
 import 'package:flutteroids/util/auto_dispose.dart';
@@ -57,7 +57,7 @@ class PlayerHud extends PositionComponent with AutoDispose, GameContext {
       ..add(BitmapText(text: 'INTEGRITY', position: Vector2(26, 26)))
       ..add(BitmapText(text: 'COOLDOWN', position: Vector2(26, 50))));
 
-    add(PlayerHudTitle(
+    add(AnimatedTitle(
       text: 'FLUTTEROIDS',
       font: menu_font,
       scale: 0.5,
@@ -132,7 +132,7 @@ class PlayerHud extends PositionComponent with AutoDispose, GameContext {
       _extra_blink_timer[msg.which] = pi / 4;
       if (!_notified.contains(msg.which)) {
         log_debug('Playing extra collected sound for ${msg.which.name}');
-        audio.play_one_shot_sample('voice/${msg.which.name}');
+        play_one_shot('voice/${msg.which.name}');
 
         // Play only once for common extras
         if (!_repeat_notify.contains(msg.which)) _notified.add(msg.which);
@@ -154,12 +154,12 @@ class PlayerHud extends PositionComponent with AutoDispose, GameContext {
     on_message<GamePhaseUpdate>((msg) {
       switch (msg.phase) {
         case GamePhase.enter_level:
-          audio.play_one_shot_sample('voice/game_on');
+          play_one_shot('voice/game_on');
         case GamePhase.level_complete:
-          audio.play_one_shot_sample('voice/level_complete');
+          play_one_shot('voice/level_complete');
         case GamePhase.game_over:
-          audio.play(Sound.game_over);
-          audio.play_one_shot_sample('voice/game_over');
+          play_sound(Sound.game_over);
+          play_one_shot('voice/game_over');
         default:
           break;
       }
@@ -243,7 +243,7 @@ class PlayerHud extends PositionComponent with AutoDispose, GameContext {
       _hiscore_value.add(BlinkEffect());
       _hiscore_value.text = _displayed_score.toString();
 
-      audio.play_one_shot_sample('voice/hiscore');
+      play_one_shot('voice/hiscore');
     }
 
     // Check if score > hiscore

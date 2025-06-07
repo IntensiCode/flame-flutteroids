@@ -3,6 +3,7 @@ import 'package:flutteroids/background/space.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/asteroids/asteroids.dart';
 import 'package:flutteroids/game/common/decals.dart';
+import 'package:flutteroids/game/common/explosions.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
@@ -13,11 +14,12 @@ import 'package:flutteroids/game/debug_overlay.dart';
 import 'package:flutteroids/game/game_screen.dart';
 import 'package:flutteroids/game/info_overlay.dart';
 import 'package:flutteroids/game/level/level.dart';
+import 'package:flutteroids/game/level/warp_transition.dart';
 import 'package:flutteroids/game/level_info.dart';
+import 'package:flutteroids/game/level_bonus.dart';
 import 'package:flutteroids/game/player/player.dart';
 import 'package:flutteroids/game/player/player_hud.dart';
 import 'package:flutteroids/game/player/player_radar.dart';
-import 'package:flutteroids/game/transitions/warp_transition.dart';
 import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/game/world/world_camera.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
@@ -35,6 +37,7 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
     await world.add(player);
     await world.add(extras);
     await world.add(decals);
+    await world.add(explosions);
     await world.add(player_radar);
     await world.add(camera);
     await add(PlayerHud(player));
@@ -53,6 +56,7 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
       onKey('<A-s>', () => player.score += 10000);
       onKey('<A-S-N>', () => change_level(10));
       onKey('<A-S-P>', () => change_level(-10));
+      onKey('<A-x>', () => player.on_hit(100));
     }
 
     if (phase == GamePhase.inactive) {
@@ -62,7 +66,7 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
 
     on_message<LevelComplete>((it) => _on_level_complete(it.message));
     on_message<PlayerDestroyed>((_) => _activate_phase(GamePhase.game_over));
-    on_message<PlayerLeft>((_) => _activate_phase(GamePhase.level_bonus));
+    on_message<PlayerLeft>((_) => _on_player_left());
 
     on_message<AsteroidDestroyed>(_on_asteroid_destroyed);
     on_message<AsteroidSplit>(_on_asteroid_split);
@@ -71,6 +75,11 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
   void _on_level_complete([String? message]) {
     _complete_message = message;
     _activate_phase(GamePhase.level_complete);
+  }
+
+  void _on_player_left() {
+    _pending_phase = GamePhase.level_bonus;
+    _phase_timer = 0.5;
   }
 
   void _on_asteroid_split(AsteroidSplit msg) {
@@ -106,12 +115,6 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
     if (current_level < 1) current_level = 1;
     show_debug("Entering level $current_level");
     _activate_phase(phase);
-  }
-
-  void next_level() {
-    current_level += 1;
-    show_debug("Next level: $current_level");
-    _activate_phase(GamePhase.level_info);
   }
 }
 
@@ -162,6 +165,7 @@ mixin _GamePhaseTransition on GameScreen, GameContext {
 
   void _activate_phase(GamePhase? next) {
     removeAll(children.whereType<LevelInfo>());
+    removeAll(children.whereType<LevelBonus>());
     world.removeAll(world.children.whereType<WarpTransition>());
 
     _pending_phase = null;
@@ -230,7 +234,7 @@ mixin _GamePhaseTransition on GameScreen, GameContext {
     // TODO Handle hiscore here?
     phase = GamePhase.game_over;
     show_info(
-      'Manta destroyed!',
+      'ALL HOPE IS LOST',
       title: 'GAME OVER',
       longer: true,
     );
@@ -239,26 +243,30 @@ mixin _GamePhaseTransition on GameScreen, GameContext {
   void show_level_bonus() {
     phase = GamePhase.level_bonus;
 
-    final bonus_title = 'LEVEL $current_level COMPLETE';
-    final bonus_description = 'Score: ${player.score}';
-    log_debug('Showing level bonus: $bonus_title - $bonus_description');
-    add(LevelInfo(
-      title: bonus_title,
-      text: bonus_description,
+    _start_warp_transition();
+
+    log_debug('Showing level bonus screen');
+    add(LevelBonus(
       position: v2(408, game_height / 3),
-      on_done: () => _start_warp_transition(),
+      on_done: () => _warp_transition?.leave_warp(),
     ));
   }
 
+  WarpTransition? _warp_transition;
+
   void _start_warp_transition() {
     log_debug('Starting warp transition');
-    world.add(WarpTransition(
-      on_complete: () {
-        _pending_phase = GamePhase.level_info;
-        _phase_timer = 0.5;
-        current_level += 1;
-        level.set_level(current_level);
-      },
+    world.add(_warp_transition = WarpTransition(
+      on_complete: () => _next_level(),
     ));
+  }
+
+  void _next_level() {
+    _pending_phase = GamePhase.level_info;
+    _phase_timer = 0.5;
+    current_level += 1;
+    level.set_level(current_level);
+
+    show_debug("Next level: $current_level");
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutteroids/aural/audio_menu.dart';
@@ -5,7 +7,9 @@ import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/background/space.dart';
 import 'package:flutteroids/core/atlas.dart';
 import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/animated_title.dart';
 import 'package:flutteroids/game/common/screens.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/input/keys.dart';
 import 'package:flutteroids/input/shortcuts.dart';
 import 'package:flutteroids/ui/basic_menu.dart';
@@ -35,7 +39,7 @@ class WebPlayScreen extends AutoDisposeComponent with HasAutoDisposeShortcuts {
 
   @override
   onLoad() async {
-    if (kIsWeb) {
+    if (true || kIsWeb) {
       add(FlowText(
         text: 'Hint:\n\nIf keyboard controls are not working, press <TAB> once to focus the game.',
         background: atlas.sprite('button_plain.png'),
@@ -59,15 +63,15 @@ class WebPlayScreen extends AutoDisposeComponent with HasAutoDisposeShortcuts {
     add(BasicMenu<AudioMenuEntry>(
       keys: _keys,
       font: mini_font,
-      onSelected: _selected,
+      on_selected: _selected,
       spacing: 10,
     )
-      ..addEntry(AudioMenuEntry.master_volume, 'Start')
-      ..addEntry(AudioMenuEntry.music_and_sound, 'Music & Sound')
-      ..addEntry(AudioMenuEntry.music_only, 'Music Only')
-      ..addEntry(AudioMenuEntry.sound_only, 'Sound Only')
-      ..addEntry(AudioMenuEntry.silent_mode, 'Silent Mode')
-      ..preselectEntry(AudioMenuEntry.master_volume)
+      ..add_entry(AudioMenuEntry.master_volume, 'Start')
+      ..add_entry(AudioMenuEntry.music_and_sound, 'Music & Sound')
+      ..add_entry(AudioMenuEntry.music_only, 'Music Only')
+      ..add_entry(AudioMenuEntry.sound_only, 'Sound Only')
+      ..add_entry(AudioMenuEntry.silent_mode, 'Silent Mode')
+      ..preselect_entry(AudioMenuEntry.master_volume)
       ..position.setValues(game_center.x, game_center.y - 16)
       ..anchor = Anchor.topCenter);
 
@@ -87,12 +91,14 @@ class WebPlayScreen extends AutoDisposeComponent with HasAutoDisposeShortcuts {
       add(BitmapText(
         text: "A",
         font: menu_font,
-        anchor: Anchor.topCenter,
-        position: Vector2(game_center.x, 16),
+        scale: 0.5,
+        anchor: Anchor.bottomCenter,
+        position: Vector2(game_center.x, 48),
       )..fadeInDeep());
       add(BitmapText(
         text: "GAME",
         font: menu_font,
+        scale: 0.5,
         anchor: Anchor.topCenter,
         position: Vector2(game_center.x, 144),
       )..fadeInDeep());
@@ -103,7 +109,16 @@ class WebPlayScreen extends AutoDisposeComponent with HasAutoDisposeShortcuts {
         position: Vector2(game_center.x, game_height - 16),
       )..fadeInDeep());
     });
-    audio.play_one_shot_sample('psychocell.wav', cache: false);
+    play_one_shot('psychocell.wav', cache: false);
+
+    add(AnimatedTitle(
+      text: 'FLUTTEROIDS',
+      font: menu_font,
+      scale: 1.0,
+    )
+      ..angle = pi / 2
+      ..position.setValues(550, 64)
+      ..fadeInDeep());
   }
 
   void _selected(AudioMenuEntry it) {

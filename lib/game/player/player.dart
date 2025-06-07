@@ -3,14 +3,16 @@ import 'dart:ui';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
-import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/configuration.dart';
 import 'package:flutteroids/game/common/decals.dart';
+import 'package:flutteroids/game/common/explosions.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/game_phase.dart';
 import 'package:flutteroids/game/common/kinds.dart';
 import 'package:flutteroids/game/common/messages.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/game/common/voxel_entity.dart';
 import 'package:flutteroids/game/common/voxel_rotation.dart';
 import 'package:flutteroids/game/player/deflector_shield.dart';
@@ -116,7 +118,7 @@ class AsteroidsPlayer extends PositionComponent
 
   void _on_jumping() {
     jumping_countdown = 5.0;
-    audio.play_one_shot_sample('voice/jumping');
+    play_one_shot('voice/jumping');
   }
 
   void _handle_game_phase(GamePhase phase) {
@@ -134,7 +136,7 @@ class AsteroidsPlayer extends PositionComponent
       case GamePhase.play_level:
         state = _State.teleporting_in;
         decals.spawn(DecalKind.teleport, this);
-        audio.play(Sound.teleport_long);
+        play_sound(Sound.teleport_long);
       case GamePhase.level_complete:
         state = _State.playing;
         isVisible = true;
@@ -168,9 +170,10 @@ class AsteroidsPlayer extends PositionComponent
       case _State.exploding:
         if (hit_time > 0) {
           break;
-        } else if (state_time < 1.0) {
+        } else if (state_time < 2.0) {
           state_time += dt;
-          voxel.exploding = state_time;
+          voxel.exploding = min(1.0, state_time);
+          return; // Skip _PlayerMovement.update
         } else {
           state = _State.inactive;
           removeAll(children);
@@ -187,7 +190,7 @@ class AsteroidsPlayer extends PositionComponent
           if (jumping_countdown <= 0) {
             state = _State.teleporting_out;
             decals.spawn(DecalKind.teleport, this);
-            audio.play(Sound.teleport_long);
+            play_sound(Sound.teleport_long);
             send_message(PlayerLeft());
             return; // Skip _PlayerMovement.update
           }
@@ -208,7 +211,7 @@ class AsteroidsPlayer extends PositionComponent
 
       case _State.teleporting_out:
         state_time += dt;
-        isVisible = state_time <= 0.5;
+        isVisible = state_time <= 0.05;
 
         if (state_time >= 1.0) {
           state = _State.inactive;
@@ -239,12 +242,14 @@ class AsteroidsPlayer extends PositionComponent
       state = _State.exploding;
       state_time = 0.0;
       voxel.exploding = 0.0;
+      add(explosions.spawn(this, scale: 2.0)..priority = 30);
+      play_sound(Sound.explosion);
     }
   }
 
   @override
   void on_collect_extra(ExtraId which) {
-    log_warn('Player collected extra: $which');
+    log_debug('Player collected extra: $which');
     score += 10;
     switch (which) {
       case ExtraId.plasma_gun:

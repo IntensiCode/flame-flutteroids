@@ -1,5 +1,4 @@
-import 'package:flutteroids/game/common/voxel_entity.dart';
-import 'package:flutteroids/util/auto_dispose.dart';
+import 'package:flutteroids/game/common/configuration.dart';
 import 'package:flutteroids/util/log.dart';
 
 enum VideoMode {
@@ -8,70 +7,28 @@ enum VideoMode {
   quality,
 }
 
-void apply_video_mode() {
-  switch (video) {
+VideoMode guess_video_mode() {
+  if (frame_skip.value == 4) return VideoMode.performance;
+  if (frame_skip.value == 2) return VideoMode.balanced;
+  return VideoMode.quality;
+}
+
+void apply_video_mode(VideoMode video_mode) {
+  switch (video_mode) {
     case VideoMode.performance:
-      VoxelEntity.render_exhaust = false;
-      VoxelEntity.frame_skip = 4;
+      bg_anim.value = false;
+      exhaust_anim.value = false;
+      frame_skip << 4;
 
     case VideoMode.balanced:
-      VoxelEntity.render_exhaust = false;
-      VoxelEntity.frame_skip = 2;
+      bg_anim.value = true;
+      exhaust_anim.value = false;
+      frame_skip << 2;
 
     case VideoMode.quality:
-      VoxelEntity.render_exhaust = true;
-      VoxelEntity.frame_skip = 0;
+      bg_anim.value = true;
+      exhaust_anim.value = true;
+      frame_skip << 0;
   }
-  log_info('video_mode=$video');
-  log_info('render_exhaust=${VoxelEntity.render_exhaust}');
-  log_info('frame_skip=${VoxelEntity.frame_skip}');
+  log_info('$video_mode: $bg_anim $exhaust_anim $frame_skip');
 }
-
-set bg_anim(bool value) {
-  _bg_anim = value;
-  _on_bg_anim_change.forEach((it) => it(value));
-}
-
-bool get bg_anim => _bg_anim;
-
-Disposable on_bg_anim_change(Function(bool) hook) {
-  _on_bg_anim_change.add(hook);
-  return Disposable.wrap(() => _on_bg_anim_change.remove(hook));
-}
-
-final _on_bg_anim_change = <Function(bool)>[];
-
-var _bg_anim = true;
-
-set exhaust_anim(bool value) {
-  _exhaust_anim = value;
-  _on_exhaust_anim_change.forEach((it) => it(value));
-}
-
-bool get exhaust_anim => _exhaust_anim;
-
-Disposable on_exhaust_anim_change(Function(bool) listener) {
-  _on_exhaust_anim_change.add(listener);
-  return Disposable.wrap(() => _on_exhaust_anim_change.remove(listener));
-}
-
-final _on_exhaust_anim_change = <Function(bool hook)>[];
-
-var _exhaust_anim = true;
-
-set video(VideoMode value) {
-  _video = value;
-  _on_video_change.forEach((it) => it(value));
-  apply_video_mode();
-}
-
-VideoMode get video => _video;
-
-Disposable on_video_change(Function(VideoMode) listener) {
-  _on_video_change.add(listener);
-  return Disposable.wrap(() => _on_video_change.remove(listener));
-}
-
-final _on_video_change = <Function(VideoMode hook)>[];
-
-var _video = VideoMode.balanced;

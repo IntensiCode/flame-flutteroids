@@ -1,11 +1,11 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
-import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/kinds.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/game/projectiles/plasma_shot.dart';
 import 'package:flutteroids/game/weapons/auto_target.dart';
 import 'package:flutteroids/game/world/world.dart';
@@ -70,16 +70,21 @@ class PlasmaGun extends Component with GameContext, PrimaryWeapon, AutoTarget {
     _current_heat = (_current_heat + heat_per_shot).clamp(0.0, max_heat);
 
     final (_, angle) = auto_target_angle(_player.world_pos, _player.angle);
-    final count = 1 + PlasmaShot.power_boost.round();
-    // log_debug('Firing Plasma Gun: count=$count boost=${PlasmaShot.power_boost}');
-    for (var i = 0; i < count; i++) {
+    final count = 1 + boost ~/ 2;
+    // log_debug('Firing Plasma Gun: count=$count boost=$boost');
+    for (var i = 0; i < (count + 1) ~/ 2; i++) {
       final d = pi / 48 * (i - (count - 1) / 2);
       world.add(_projectiles.acquire()
         ..reset(_player, angle ?? _player.angle)
-        ..speed_buff = -d.abs() * 250
+        ..speed_buff = 0 // -d.abs() * 250
         ..change_direction(d));
+      world.add(_projectiles.acquire()
+        ..reset(_player, angle ?? _player.angle)
+        ..speed_buff = 0 // -d.abs() * 250
+        ..change_direction(-d));
     }
+    // world.add(_projectiles.acquire()..reset(_player, angle ?? _player.angle));
 
-    audio.play(Sound.shot, volume_factor: 0.5);
+    play_sound(Sound.shot, volume_factor: 0.5);
   }
 }

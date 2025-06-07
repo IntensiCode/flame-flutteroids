@@ -6,7 +6,9 @@ import 'package:flutteroids/background/space.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/messages.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/game/world/world.dart';
+import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/log.dart';
 import 'package:flutteroids/util/mutable.dart';
 import 'package:flutteroids/util/random.dart';
@@ -23,10 +25,15 @@ enum WarpUniform {
   const WarpUniform(this.type);
 }
 
+enum WarpPhase {
+  start,
+  hold,
+  end,
+}
+
 class WarpTransition extends Component with GameContext {
   WarpTransition({
     required this.on_complete,
-    this.duration = 4.0,
   }) {
     priority = 1000;
   }
@@ -37,12 +44,21 @@ class WarpTransition extends Component with GameContext {
   final _paint = pixel_paint();
 
   final Function() on_complete;
-  final double duration;
+
+  static const double start_duration = 0.1;
+  static const double end_duration = 0.5;
 
   double _hash = 0;
-  double _elapsed = 0;
+  double _phase_elapsed = 0;
+  WarpPhase _current_phase = WarpPhase.start;
   bool _warped = false;
   bool _completed = false;
+
+  void leave_warp() {
+    _current_phase = WarpPhase.end;
+    _phase_elapsed = 0.0;
+    log_debug('Warp transition proceeding to end phase');
+  }
 
   @override
   Future<void> onLoad() async {
@@ -74,6 +90,10 @@ class WarpTransition extends Component with GameContext {
     _uniforms!.set(WarpUniform.resolution, Vector2.all(size));
 
     log_debug('Warp transition started');
+
+    world.removeAll(children.whereType<WorldEntity>());
+
+    play_sound(Sound.incoming);
   }
 
   @override
@@ -85,38 +105,55 @@ class WarpTransition extends Component with GameContext {
   @override
   void update(double dt) {
     super.update(dt);
-    _elapsed += dt;
+    _phase_elapsed += dt;
 
-    final progress = (_elapsed / duration).clamp(0.0, 1.0);
-    final t = Curves.easeInOut.transform(progress);
-    _uniforms!.set(WarpUniform.time, t + _hash);
+    double alpha = 0.0;
+    double time_value = 0.0;
 
-    // Handle alpha: cubic ease-in during first 0.1, then full opacity until 0.8, then cubic ease-out
-    double alpha;
-    if (t < 0.1) {
-      double t_normalized = t / 0.1;
-      alpha = t_normalized * t_normalized * t_normalized;
-    } else if (t < 0.8) {
-      alpha = 1.0;
-    } else {
-      double t_normalized = (t - 0.8) / 0.2;
-      alpha = 1.0 - (t_normalized * t_normalized * t_normalized);
+    switch (_current_phase) {
+      case WarpPhase.start:
+        // Start phase: 0.1 second ramp up of alpha and cubic time
+        final progress = (_phase_elapsed / start_duration).clamp(0.0, 1.0);
+        time_value = Curves.easeInOut.transform(progress);
+
+        // Cubic ease-in for alpha
+        alpha = progress * progress * progress;
+
+        if (_phase_elapsed >= start_duration) {
+          _current_phase = WarpPhase.hold;
+          _phase_elapsed = 0.0;
+        }
+
+      case WarpPhase.hold:
+        // Hold phase: keep shader animation going at fast speed
+        time_value = 1.0 + _phase_elapsed;
+        alpha = 1.0;
+
+      case WarpPhase.end:
+        // End phase: 0.2 second ramp down of alpha and cubic time
+        final progress = (_phase_elapsed / end_duration).clamp(0.0, 1.0);
+        time_value = 1.0 - Curves.easeInOut.transform(progress);
+
+        // Cubic ease-out for alpha
+        alpha = 1.0 - (progress * progress * progress);
+
+        if (_phase_elapsed >= end_duration && !_completed) {
+          _completed = true;
+          on_complete();
+          removeFromParent();
+        }
     }
-    alpha = alpha.clamp(0.0, 1.0);
-    _uniforms!.set(WarpUniform.alpha, alpha);
 
-    if (_elapsed >= duration * 0.8 && !_warped) {
+    _uniforms!.set(WarpUniform.time, time_value + _hash);
+    _uniforms!.set(WarpUniform.alpha, alpha.clamp(0.0, 1.0));
+
+    // Trigger warp jump when entering end phase
+    if (_current_phase == WarpPhase.end && !_warped) {
       _warped = true;
       space.position.x = level_rng.nextDoublePM(4);
       space.position.y = level_rng.nextDoublePM(4);
       space.override_disable_anim = false;
       send_message(LeavingWarp());
-    }
-
-    if (_elapsed >= duration && !_completed) {
-      _completed = true;
-      on_complete();
-      removeFromParent();
     }
   }
 

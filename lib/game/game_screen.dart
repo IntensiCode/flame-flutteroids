@@ -142,7 +142,7 @@ abstract class GameScreen extends GameScriptComponent with HasAutoDisposeShortcu
 class _PauseOverlay extends GameScriptComponent with GameContext {
   _PauseOverlay(this.on_resume) {
     add(RectangleComponent(size: game_size)..paint.color = const Color(0x80000000));
-    add(BitmapText(text: 'PAUSED', position: game_center, font: menu_font, anchor: Anchor.center));
+    add(BitmapText(text: 'PAUSED', position: v2(408, 200), font: menu_font, anchor: Anchor.center));
     softkeys('Resume', 'Exit', (it) {
       if (it == SoftKey.left) _resume();
       if (it == SoftKey.right) _back_to_title();

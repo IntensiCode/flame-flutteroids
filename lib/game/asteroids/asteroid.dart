@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
-import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/asteroids/asteroid_collision.dart';
 import 'package:flutteroids/game/asteroids/asteroid_rendering.dart';
@@ -11,10 +10,10 @@ import 'package:flutteroids/game/common/decals.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/kinds.dart';
 import 'package:flutteroids/game/common/messages.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/game/world/world_bounds.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/component_recycler.dart';
-import 'package:flutteroids/util/log.dart';
 import 'package:flutteroids/util/random.dart';
 
 class Asteroid extends PositionComponent
@@ -81,10 +80,11 @@ class Asteroid extends PositionComponent
     if (is_destroyed) {
       split_into_two();
       spawn_dust(asteroid_radius.toInt() ~/ 10);
-      audio.play(Sound.clash);
+      play_sound(Sound.clash, volume_factor: asteroid_radius / 50);
     } else {
       asteroid_hash += 0.03;
       decals.spawn(DecalKind.dust, this, pos_range: asteroid_radius / 3, vel_range: 10);
+      // play_sound(Sound.clash, volume_factor: asteroid_radius / 100);
     }
   }
 

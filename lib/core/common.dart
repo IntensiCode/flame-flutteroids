@@ -16,19 +16,6 @@ Vector2 v2z_ = Vector2.zero();
 
 Function(bool)? on_debug_change;
 
-bool _debug = kDebugMode && !kIsWeb;
-
-bool get debug => _debug;
-
-set debug(bool value) {
-  _debug = value;
-  on_debug_change?.call(value);
-  game.debugMode = value;
-  for (final it in game.descendants()) {
-    it.debugMode = value;
-  }
-}
-
 bool dev = kDebugMode;
 
 bool cheat = dev;

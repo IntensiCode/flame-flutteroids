@@ -1,7 +1,19 @@
 import 'package:flame/components.dart';
+import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/kinds.dart';
 import 'package:flutteroids/game/world/world_bounds.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 import 'package:flutteroids/util/log.dart';
+
+Vector2 spawn_pos_for(PositionComponent origin) {
+  if (origin is Player) {
+    return v2z_;
+  } else if (origin is WorldEntity) {
+    return origin.world_pos;
+  } else {
+    return origin.position;
+  }
+}
 
 mixin WorldEntity on PositionComponent, Recyclable {
   //

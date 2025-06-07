@@ -30,7 +30,7 @@ Future save_data(String name, GameData data) async {
   try {
     final preferences = await _prefs;
     final json = jsonEncode(data);
-    if (dev) log_verbose(json);
+    if (dev) log_info(json);
     preferences.setString(name.key, json);
     log_verbose('Saved $name data');
   } catch (it, trace) {
@@ -42,7 +42,7 @@ Future<GameData?> load_data(String name) async {
   try {
     final preferences = await _prefs;
     if (!preferences.containsKey(name.key)) {
-      log_verbose('No data for $name');
+      log_info('No data for $name');
       return null;
     }
 
@@ -52,8 +52,8 @@ Future<GameData?> load_data(String name) async {
       return null;
     }
 
-    log_verbose('Loaded $name');
-    log_verbose(json);
+    log_info('Loaded $name');
+    if (dev) log_info(json);
     return jsonDecode(json);
   } catch (it, trace) {
     log_error('Failed to restore $name: $it', trace);

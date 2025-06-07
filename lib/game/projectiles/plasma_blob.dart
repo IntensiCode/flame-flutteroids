@@ -69,6 +69,7 @@ class PlasmaBlob extends PositionComponent
     }
 
     _anim_time = level_rng.nextDoubleLimit(10);
+    max_distance = DirectionalProjectile.world_size();
   }
 
   @override

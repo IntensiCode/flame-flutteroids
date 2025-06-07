@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/configuration.dart';
 import 'package:flutteroids/game/common/game_context.dart';
-import 'package:flutteroids/game/common/video_mode.dart';
 import 'package:flutteroids/util/auto_dispose.dart';
 import 'package:flutteroids/util/log.dart';
 import 'package:flutteroids/util/mutable.dart';
@@ -45,6 +45,7 @@ class Space extends Component with AutoDispose, HasPaint {
   final position = Vector2.zero();
 
   bool get _animated => _animate && !_override_disable_anim;
+
   set override_disable_anim(bool value) => _override_disable_anim = value;
 
   Space._();
@@ -73,12 +74,12 @@ class Space extends Component with AutoDispose, HasPaint {
   @override
   void onMount() {
     super.onMount();
-    auto_dispose('on_animate_space_change', on_bg_anim_change((animate) => _update_space()));
+    auto_dispose('bg_anim', bg_anim.on_change((_) => _update_space()));
     _update_space();
   }
 
   void _update_space() {
-    _animate = bg_anim;
+    _animate = ~bg_anim;
 
     _last?.dispose();
     _last = null;

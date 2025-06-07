@@ -1,9 +1,9 @@
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
-import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/game/asteroids/asteroid_splitting.dart' show AsteroidSplitting;
-import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/game/common/kinds.dart';
+import 'package:flutteroids/game/common/sound.dart';
+import 'package:flutteroids/game/world/world_entity.dart';
 
 mixin AsteroidCollision on Component, WorldEntity, CollisionCallbacks, AsteroidSplitting, OnHit {
   final _collision_normal = Vector2.zero();
@@ -20,8 +20,8 @@ mixin AsteroidCollision on Component, WorldEntity, CollisionCallbacks, AsteroidS
       final combined = asteroid_radius + it.asteroid_radius;
       spawn_dust(combined.toInt() ~/ 20);
 
-      if (it.asteroid_radius >= 30) {
-        audio.play(Sound.clash, volume_factor: 0.1);
+      if (it.asteroid_radius >= 20) {
+        play_sound(Sound.clash, volume_factor: it.asteroid_radius / 100);
       }
 
       _apply_collision_damage(it);

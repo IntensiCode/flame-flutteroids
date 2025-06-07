@@ -153,7 +153,13 @@ class WeaponSystem extends Component with AutoDispose, HasAutoDisposeShortcuts, 
         _primaries.forEach((key, value) => _primaries[key] = true);
         _secondaries.forEach((key, value) => _secondaries[key] = 10);
         switch_secondary_to(_secondaries.keys.first.runtimeType);
-        send_message(ShowDebugText(text: 'Grant All Weapons', title: 'Cheat'));
+        send_message(ShowDebugText(text: 'Grant All Weapons'));
+      });
+      onKey(']', () {
+        log_info('make all weapons available');
+        _primaries.forEach((key, _) => key.on_boost());
+        _secondaries.forEach((key, _) => key.on_boost());
+        send_message(ShowDebugText(text: 'Boost All Weapons'));
       });
     }
   }

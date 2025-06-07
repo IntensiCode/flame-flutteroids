@@ -24,11 +24,17 @@ class Level extends Component {
 
   bool get completed => primary_goal?.completed ?? false;
 
-  /// Message containing the taglines of all goals in the level.
-  String get tagline => children.map((it) => it is LevelGoal ? it.tagline : '').join('\n');
+  // /// Message containing the taglines of all goals in the level.
+  // String get tagline => children.map((it) => it is LevelGoal ? it.tagline : '').join('\n');
+
+  /// Message containing the tagline of the primary goal in the level.
+  String get tagline => primary_goal?.tagline ?? '';
 
   /// Message containing the messages of all completed goals in the level.
   String get message => children.map((it) => it is LevelGoal && it.completed ? it.message : '').join('\n');
+
+  /// Iterable of all completed goals in the level.
+  Iterable<LevelGoal> get completed_goals => children.whereType<LevelGoal>().where((goal) => goal.completed);
 
   void set_level(int level) {
     level_rng = Random(level);
@@ -55,7 +61,6 @@ class Level extends Component {
     if (completed && !_notified) {
       log_debug('Level $current_level completed');
       send_message(LevelComplete(message));
-      removeAll(children);
       _notified = true;
     }
   }

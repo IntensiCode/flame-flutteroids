@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/aural/volume_component.dart';
@@ -6,9 +7,11 @@ import 'package:flutteroids/background/space.dart';
 import 'package:flutteroids/core/atlas.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/common/screens.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/input/keys.dart';
 import 'package:flutteroids/ui/basic_menu.dart';
 import 'package:flutteroids/ui/fonts.dart';
+import 'package:flutteroids/util/bitmap_text.dart';
 import 'package:flutteroids/util/extensions.dart';
 import 'package:flutteroids/util/game_script.dart';
 import 'package:flutteroids/util/log.dart';
@@ -42,27 +45,31 @@ class AudioMenu extends GameScriptComponent {
     menu = added(BasicMenu<AudioMenuEntry>(
       keys: _keys,
       font: mini_font,
-      onSelected: _selected,
+      on_selected: _selected,
       spacing: 10,
     )
-      ..addEntry(AudioMenuEntry.music_and_sound, 'Music & Sound')
-      ..addEntry(AudioMenuEntry.music_only, 'Music Only')
-      ..addEntry(AudioMenuEntry.sound_only, 'Sound Only')
-      ..addEntry(AudioMenuEntry.silent_mode, 'Silent Mode'));
+      ..add_entry(AudioMenuEntry.music_and_sound, 'Music & Sound')
+      ..add_entry(AudioMenuEntry.music_only, 'Music Only')
+      ..add_entry(AudioMenuEntry.sound_only, 'Sound Only')
+      ..add_entry(AudioMenuEntry.silent_mode, 'Silent Mode'));
 
     menu.position.setValues(game_center.x, 48);
     menu.anchor = Anchor.topCenter;
 
-    menu.onPreselected = (it) => _preselected = it;
+    menu.on_preselected = (it) => _preselected = it;
 
     _add_volume_controls(menu);
 
-    add(menu.addEntry(AudioMenuEntry.back, 'Back', size: Vector2(80, 24))
+    if (dev) {
+      _add_sound_tester();
+    }
+
+    add(menu.add_entry(AudioMenuEntry.back, 'Back', size: Vector2(80, 24))
       ..auto_position = false
       ..position.setValues(8, game_size.y - 8)
       ..anchor = Anchor.bottomLeft);
 
-    menu.preselectEntry(_preselected ?? AudioMenuEntry.master_volume);
+    menu.preselect_entry(_preselected ?? AudioMenuEntry.master_volume);
   }
 
   @override
@@ -92,9 +99,9 @@ class AudioMenu extends GameScriptComponent {
     add(_sound = _volume_control('Sound Volume { / }', '{', '}',
         position: positions[2], anchor: Anchor.center, change: change_sound, volume: read_sound));
 
-    menu.addCustom(AudioMenuEntry.master_volume, _master);
-    menu.addCustom(AudioMenuEntry.music_volume, _music);
-    menu.addCustom(AudioMenuEntry.sound_volume, _sound);
+    menu.add_custom(AudioMenuEntry.master_volume, _master);
+    menu.add_custom(AudioMenuEntry.music_volume, _music);
+    menu.add_custom(AudioMenuEntry.sound_volume, _sound);
   }
 
   late final VolumeComponent _master;
@@ -128,7 +135,23 @@ class AudioMenu extends GameScriptComponent {
     if (_last_sound_at + 100 > now) return;
     _last_sound_at = now;
     final which = (Sound.values - [Sound.incoming]).random().name;
-    audio.play_one_shot_sample('sound/$which.ogg');
+    play_one_shot('sound/$which');
+  }
+
+  void _add_sound_tester() {
+    final soundList = Sound.values.toList();
+    final column = PositionComponent(position: Vector2(game_size.x - 100, 48));
+
+    for (int i = 0; i < soundList.length; i++) {
+      final sound = soundList[i];
+      final yPos = i * 12.0;
+      column.add(_PlaySound(
+        sound: sound,
+        position: Vector2(0, yPos),
+      ));
+    }
+
+    add(column);
   }
 
   VolumeComponent _volume_control(
@@ -153,4 +176,29 @@ class AudioMenu extends GameScriptComponent {
         volume: volume,
         keys: _keys,
       );
+}
+
+class _PlaySound extends PositionComponent with TapCallbacks {
+  final Sound sound;
+  late final BitmapText _text;
+
+  _PlaySound({
+    required this.sound,
+    required super.position,
+  }) {
+    _text = BitmapText(
+      text: sound.name,
+      position: Vector2.zero(),
+      font: tiny_font,
+      scale: 1,
+    );
+    add(_text);
+    size = _text.size;
+  }
+
+  @override
+  void onTapUp(TapUpEvent event) {
+    super.onTapUp(event);
+    play_sound(sound);
+  }
 }

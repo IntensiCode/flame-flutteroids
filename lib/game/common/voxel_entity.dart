@@ -3,18 +3,14 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/configuration.dart';
 import 'package:flutteroids/util/mutable.dart';
 import 'package:flutteroids/util/pixelate.dart';
 import 'package:flutteroids/util/uniforms.dart';
 
 class VoxelEntity extends PositionComponent with HasPaint {
-  static bool render_exhaust = !kIsWeb;
-  static int frame_skip = kIsWeb ? 4 : 1;
-
   final _shader_rect = MutRect(0, 0, 0, 0);
-  final _src_rect = MutRect(0, 0, 0, 0);
   final _dst_rect = MutRect(0, 0, 0, 0);
 
   static final Matrix4 _scale_matrix = Matrix4.identity();
@@ -22,7 +18,6 @@ class VoxelEntity extends PositionComponent with HasPaint {
   static final Matrix4 _inverse = Matrix4.identity();
 
   Image? _exhaust_buffer;
-  Image? _shader_buffer;
 
   late final int _frames;
   late final Image _voxel_atlas;
@@ -128,33 +123,19 @@ class VoxelEntity extends PositionComponent with HasPaint {
     if (exploding == 0.0) _exhaust_anim += dt;
   }
 
-  int _frame_skip = level_rng.nextInt(frame_skip);
-
   @override
   void render(Canvas canvas) {
     final size = parent_size;
     voxel_pixel_size = min(size.x, size.y).toInt().clamp(16, 256);
 
-    if (_frame_skip == 0) {
-      _src_rect.setSize(voxel_pixel_size * 1.0, voxel_pixel_size * 1.0);
-      if (render_exhaust) _renderExhaust();
-      _renderVoxelModel();
-      if (frame_skip > 1) {
-        _frame_skip = level_rng.nextInt(frame_skip ~/ 2) + frame_skip ~/ 2;
-      }
-    } else {
-      _frame_skip--;
-    }
+    _dst_rect.setSize(size.x, size.y);
 
-    if (_shader_buffer != null) {
-      _dst_rect.setSize(size.x, size.y);
-      _paint.shader = null;
-      _paint.color = const Color(0xFFffffff);
-      canvas.drawImageRect(_shader_buffer!, _src_rect, _dst_rect, _paint);
-    }
+    if (~exhaust_anim) _render_exhaust();
+
+    _render_model(canvas);
   }
 
-  void _renderExhaust() {
+  void _render_exhaust() {
     _exhaust_buffer?.dispose();
     _exhaust_buffer = pixelate(_voxel_atlas.width, _voxel_atlas.height, (canvas) {
       final len = exploding > 0.0 ? 0.0 : exhaust_length;
@@ -167,21 +148,14 @@ class VoxelEntity extends PositionComponent with HasPaint {
     });
   }
 
-  void _renderVoxelModel() {
-    final img = pixelate(voxel_pixel_size, voxel_pixel_size, (canvas) {
-      final bool is_exploding = exploding > 0.0;
-      final active_shader = is_exploding ? _exploding_shader : _shader;
+  void _render_model(Canvas canvas) {
+    final bool is_exploding = exploding > 0.0;
+    final active_shader = is_exploding ? _exploding_shader : _shader;
 
-      _updateUniforms(active_shader, is_exploding);
-      _paint.shader = active_shader;
-
-      _shader_rect.setSizeInt(voxel_pixel_size, voxel_pixel_size);
-      canvas.drawRect(_shader_rect, _paint);
-      _paint.shader = null;
-    });
-
-    _shader_buffer?.dispose();
-    _shader_buffer = img;
+    _updateUniforms(active_shader, is_exploding);
+    _paint.shader = active_shader;
+    _paint.color = const Color(0xFFffffff);
+    canvas.drawRect(_dst_rect, _paint);
   }
 
   final _tmp_vector = Vector2.zero();

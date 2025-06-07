@@ -4,12 +4,13 @@ import 'package:flame/components.dart';
 import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/background/space.dart';
 import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/animated_title.dart';
 import 'package:flutteroids/game/common/screens.dart';
 import 'package:flutteroids/game/common/video_mode.dart';
 import 'package:flutteroids/input/keys.dart';
 import 'package:flutteroids/input/shortcuts.dart';
 import 'package:flutteroids/title/title_asteroids.dart';
-import 'package:flutteroids/title/title_text.dart';
+import 'package:flutteroids/title/title_manta.dart';
 import 'package:flutteroids/ui/basic_menu.dart';
 import 'package:flutteroids/ui/fonts.dart';
 import 'package:flutteroids/util/bitmap_text.dart';
@@ -43,15 +44,20 @@ class TitleScreen extends GameScriptComponent with HasAutoDisposeShortcuts {
   onLoad() {
     add(_keys);
     add(shared_space);
+    add(TitleManta()
+      ..position.setValues(500, 300)
+      ..anchor = Anchor.center);
     add(TitleAsteroids());
-    add(TitleText());
+    add(AnimatedTitle(text: 'FLUTTEROIDS', font: menu_font, scale: 2.0)
+      ..position.setValues(64, 64)
+      ..anchor = Anchor.center);
 
     for (final (idx, it) in _credits.reversed.indexed) {
       textXY(it, 784, 466 - idx * 10, anchor: Anchor.bottomRight, scale: 1);
     }
 
     textXY('< Video Mode >', 280, 308, anchor: Anchor.bottomCenter, scale: 1);
-    _video = textXY(video.name, 280, 308 + 12, anchor: Anchor.bottomCenter, scale: 1);
+    _video = textXY(guess_video_mode().name, 280, 308 + 12, anchor: Anchor.bottomCenter, scale: 1);
 
     textXY('< Audio Mode >', 280, 340, anchor: Anchor.bottomCenter, scale: 1);
     _audio = textXY(audio.guess_audio_mode.label, 280, 340 + 12, anchor: Anchor.bottomCenter, scale: 1);
@@ -59,23 +65,21 @@ class TitleScreen extends GameScriptComponent with HasAutoDisposeShortcuts {
     final menu = added(BasicMenu<_TitleButtons>(
       keys: _keys,
       font: mini_font,
-      onSelected: _selected,
+      on_selected: _selected,
       spacing: 8,
       fixed_position: Vector2(16, game_height - 8),
       fixed_anchor: Anchor.bottomLeft,
     ));
 
-    menu.addEntry(_TitleButtons.hiscore, 'Hiscore');
-    menu.addEntry(_TitleButtons.credits, 'Credits / How To Play');
-    menu.addEntry(_TitleButtons.controls, 'Controls');
-    menu.addEntry(_TitleButtons.video, 'Video');
-    menu.addEntry(_TitleButtons.audio, 'Audio');
-    menu.addEntry(_TitleButtons.play, 'Play');
-    menu.preselectEntry(_preselected ?? _TitleButtons.play);
+    menu.add_entry(_TitleButtons.hiscore, 'Hiscore');
+    menu.add_entry(_TitleButtons.credits, 'Credits / How To Play');
+    menu.add_entry(_TitleButtons.controls, 'Controls');
+    menu.add_entry(_TitleButtons.video, 'Video');
+    menu.add_entry(_TitleButtons.audio, 'Audio');
+    menu.add_entry(_TitleButtons.play, 'Play');
+    menu.preselect_entry(_preselected ?? _TitleButtons.play);
 
-    menu.onPreselected = (id) => _preselected = id;
-
-    audio.play(Sound.plasma);
+    menu.on_preselected = (id) => _preselected = id;
   }
 
   void _selected(_TitleButtons id) {
@@ -127,9 +131,9 @@ class TitleScreen extends GameScriptComponent with HasAutoDisposeShortcuts {
 
   void _change_video_mode(int add) {
     final values = VideoMode.values;
-    final index = (values.indexOf(video) + add) % values.length;
-    video = values[index];
-    _video?.text = video.name;
+    final index = (values.indexOf(guess_video_mode()) + add) % values.length;
+    apply_video_mode(values[index]);
+    _video?.text = values[index].name;
     _video?.fadeInDeep();
   }
 

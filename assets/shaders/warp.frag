@@ -6,7 +6,7 @@ precision highp float;
 
 uniform vec2 iResolution;
 uniform float iTime;
-uniform float iAlpha;;
+uniform float iAlpha;
 
 out vec4 fragColor;
 

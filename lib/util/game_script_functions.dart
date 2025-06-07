@@ -3,11 +3,9 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flutter/animation.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutteroids/util/auto_dispose.dart';
 import 'package:flutteroids/util/bitmap_font.dart';
 import 'package:flutteroids/util/bitmap_text.dart';
-import 'package:flutteroids/util/debug.dart';
 import 'package:flutteroids/util/extensions.dart';
 import 'package:flutteroids/util/functions.dart';
 import 'package:flutteroids/util/vector_text.dart';
@@ -20,16 +18,6 @@ mixin GameScriptFunctions on Component, AutoDispose {
   void clearByType(List types) {
     final what = types.isEmpty ? children : children.where((it) => types.contains(it.runtimeType));
     removeAll(what);
-  }
-
-  // void delay(double seconds) async {
-  //   final millis = (seconds * 1000).toInt();
-  //   await Stream.periodic(Duration(milliseconds: millis)).first;
-  // }
-
-  DebugText? debugXY(String Function() text, double x, double y, [Anchor? anchor, double? scale]) {
-    if (kReleaseMode) return null;
-    return added(DebugText(text: text, position: Vector2(x, y), anchor: anchor, scale: scale));
   }
 
   T fadeIn<T extends Component>(T it, {double duration = 0.2}) {

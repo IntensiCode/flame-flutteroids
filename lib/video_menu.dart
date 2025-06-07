@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutteroids/background/space.dart';
 import 'package:flutteroids/core/atlas.dart';
 import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/configuration.dart';
 import 'package:flutteroids/game/common/screens.dart';
 import 'package:flutteroids/game/common/video_mode.dart';
 import 'package:flutteroids/input/keys.dart';
@@ -66,7 +67,7 @@ class VideoMenu extends GameScriptComponent {
   late final BasicMenu<_VideoEntry> _menu;
 
   BasicMenuButton? _animate_space_button;
-  BasicMenuButton? _anim_button;
+  BasicMenuButton? _exhaust_anim_button;
 
   FlowText? _hint_text;
 
@@ -80,7 +81,7 @@ class VideoMenu extends GameScriptComponent {
     fontSelect(tiny_font, scale: 2);
     textXY('Video Mode', game_center.x, 20, scale: 2, anchor: Anchor.topCenter);
 
-    _preselected ??= switch (video) {
+    _preselected ??= switch (guess_video_mode()) {
       VideoMode.performance => _VideoEntry.performance,
       VideoMode.balanced => _VideoEntry.balanced,
       VideoMode.quality => _VideoEntry.quality,
@@ -89,28 +90,29 @@ class VideoMenu extends GameScriptComponent {
     _menu = added(BasicMenu<_VideoEntry>(
       keys: _keys,
       font: mini_font,
-      onSelected: _selected,
+      on_selected: _selected,
       spacing: 10,
     )
-      ..addEntry(_VideoEntry.performance, 'Performance')
-      ..addEntry(_VideoEntry.balanced, 'Balanced')
-      ..addEntry(_VideoEntry.quality, 'Quality'));
+      ..add_entry(_VideoEntry.performance, 'Performance')
+      ..add_entry(_VideoEntry.balanced, 'Balanced')
+      ..add_entry(_VideoEntry.quality, 'Quality'));
 
-    _animate_space_button = _menu.addEntry(_VideoEntry.animate_space, 'Animate Space', text_anchor: Anchor.centerLeft);
-    _animate_space_button?.checked = bg_anim;
-    _anim_button = _menu.addEntry(_VideoEntry.exhaust_anim, 'Exhaust Animation', text_anchor: Anchor.centerLeft);
-    _anim_button?.checked = exhaust_anim;
+    _animate_space_button = _menu.add_entry(_VideoEntry.animate_space, 'Animate Space', text_anchor: Anchor.centerLeft);
+    _animate_space_button?.checked = ~bg_anim;
+    _exhaust_anim_button =
+        _menu.add_entry(_VideoEntry.exhaust_anim, 'Exhaust Animation', text_anchor: Anchor.centerLeft);
+    _exhaust_anim_button?.checked = ~exhaust_anim;
 
     _menu.position.setValues(64, 64);
     _menu.anchor = Anchor.topLeft;
-    _menu.onPreselected = _preselect;
+    _menu.on_preselected = _preselect;
 
-    add(_menu.addEntry(_VideoEntry.back, 'Back', size: Vector2(80, 24))
+    add(_menu.add_entry(_VideoEntry.back, 'Back', size: Vector2(80, 24))
       ..auto_position = false
       ..position.setValues(8, game_size.y - 8)
       ..anchor = Anchor.bottomLeft);
 
-    _menu.preselectEntry(_preselected ?? _VideoEntry.balanced);
+    _menu.preselect_entry(_preselected ?? _VideoEntry.balanced);
   }
 
   @override
@@ -120,35 +122,27 @@ class VideoMenu extends GameScriptComponent {
   }
 
   void _selected(_VideoEntry it) {
-    final as = bg_anim;
-    final ba = exhaust_anim;
     switch (it) {
       case _VideoEntry.performance:
-        video = VideoMode.performance;
-        bg_anim = true;
-        exhaust_anim = false;
+        apply_video_mode(VideoMode.performance);
       case _VideoEntry.balanced:
-        video = VideoMode.balanced;
-        bg_anim = true;
-        exhaust_anim = true;
+        apply_video_mode(VideoMode.balanced);
       case _VideoEntry.quality:
-        video = VideoMode.quality;
-        bg_anim = false;
-        exhaust_anim = true;
+        apply_video_mode(VideoMode.quality);
       case _VideoEntry.animate_space:
-        bg_anim = !bg_anim;
+        bg_anim << !~bg_anim;
       case _VideoEntry.exhaust_anim:
-        exhaust_anim = !exhaust_anim;
+        exhaust_anim << !~exhaust_anim;
       case _VideoEntry.back:
         pop_screen();
     }
-    if (as != bg_anim) {
-      _animate_space_button?.checked = bg_anim;
+    if (_animate_space_button?.checked != ~bg_anim) {
+      _animate_space_button?.checked = ~bg_anim;
       _animate_space_button?.fadeInDeep();
     }
-    if (ba != exhaust_anim) {
-      _anim_button?.checked = exhaust_anim;
-      _anim_button?.fadeInDeep();
+    if (_exhaust_anim_button?.checked != ~exhaust_anim) {
+      _exhaust_anim_button?.checked = ~exhaust_anim;
+      _exhaust_anim_button?.fadeInDeep();
     }
   }
 

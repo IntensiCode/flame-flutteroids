@@ -3,10 +3,9 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/sprite.dart';
-import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/common/game_context.dart';
-import 'package:flutteroids/game/common/kinds.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 import 'package:flutteroids/util/extensions.dart';
@@ -48,24 +47,14 @@ class Decals extends Component with GameContext {
     double? pos_range,
     double? vel_range,
   }) {
-    final spawn_pos = pos_override ?? _spawn_pos(origin);
+    final spawn_pos = pos_override ?? spawn_pos_for(origin);
     final it = _spawn(decal, spawn_pos, pos_range: pos_range, vel_range: vel_range);
     if (dev) it.debugMode = debugMode;
     if (decal == DecalKind.teleport) {
-      audio.play(Sound.teleport);
+      play_sound(Sound.teleport);
       it.size = origin.size;
     }
     return it;
-  }
-
-  Vector2 _spawn_pos(PositionComponent origin) {
-    if (origin is Player) {
-      return v2z_;
-    } else if (origin is WorldEntity) {
-      return origin.world_pos;
-    } else {
-      return origin.position;
-    }
   }
 
   DecalObj _spawn(DecalKind decal, Vector2 start, {double? pos_range, double? vel_range}) {

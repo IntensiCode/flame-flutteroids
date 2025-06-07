@@ -1,11 +1,11 @@
 import 'dart:math';
 
 import 'package:flame/components.dart';
-import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/kinds.dart';
+import 'package:flutteroids/game/common/sound.dart';
 import 'package:flutteroids/game/projectiles/ion_pulse.dart';
 import 'package:flutteroids/game/weapons/auto_target.dart';
 import 'package:flutteroids/game/world/world.dart';
@@ -51,7 +51,7 @@ class IonPulseGun extends Component with GameContext, PrimaryWeapon, AutoTarget 
           ));
       }
 
-      audio.play(Sound.pulse, volume_factor: 0.5);
+      play_sound(Sound.pulse, volume_factor: 0.5);
     }
   }
 }

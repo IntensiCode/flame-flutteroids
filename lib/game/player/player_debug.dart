@@ -10,7 +10,7 @@ mixin _PlayerDebug on _PlayerMovement {
   }
 
   void render_debug_vectors(Canvas canvas) {
-    if (!dev || !debug) return;
+    if (!dev || !~debug) return;
 
     canvas.translate(position.x, position.y);
     _render_vectors(canvas);

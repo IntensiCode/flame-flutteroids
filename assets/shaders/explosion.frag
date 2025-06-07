@@ -11,7 +11,7 @@ out vec4 fragColor;
 float seed = 0.32; //----------------------------------------------------------starting seed
 const float particles = 80.0; //----------------------------------------------change particle count
 float res = 32.0; //-----------------------------------------------------------pixel resolution
-float gravity = 0.72; //-------------------------------------------------------set gravity
+float gravity = 0.00; //-------------------------------------------------------set gravity
 
 void main() {
     vec2 fragCoord = FlutterFragCoord();

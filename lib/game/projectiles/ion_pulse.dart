@@ -35,6 +35,7 @@ class IonPulse extends SpriteComponent
     super.reset(origin, angle);
     appear_delay = delay;
     size_anim = 1;
+    max_distance = DirectionalProjectile.world_size();
   }
 
   @override
