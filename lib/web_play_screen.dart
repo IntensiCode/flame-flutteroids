@@ -111,7 +111,7 @@ class WebPlayScreen extends AutoDisposeComponent with HasAutoDisposeShortcuts {
     });
     play_one_shot('psychocell', cache: false);
 
-    add(AnimatedTitle(
+    await add(AnimatedTitle(
       text: 'FLUTTEROIDS',
       font: menu_font,
       scale: 1.0,
