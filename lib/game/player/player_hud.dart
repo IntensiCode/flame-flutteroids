@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/common/animated_title.dart';
+import 'package:flutteroids/game/common/configuration.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
@@ -11,6 +12,7 @@ import 'package:flutteroids/game/common/game_phase.dart';
 import 'package:flutteroids/game/common/hiscore.dart';
 import 'package:flutteroids/game/common/messages.dart';
 import 'package:flutteroids/game/common/sound.dart';
+import 'package:flutteroids/game/common/video_mode.dart';
 import 'package:flutteroids/game/info_overlay.dart';
 import 'package:flutteroids/game/player/deflector_shield.dart';
 import 'package:flutteroids/game/player/player.dart';
@@ -57,11 +59,20 @@ class PlayerHud extends PositionComponent with AutoDispose, GameContext {
       ..add(BitmapText(text: 'INTEGRITY', position: Vector2(26, 26)))
       ..add(BitmapText(text: 'COOLDOWN', position: Vector2(26, 50))));
 
-    add(AnimatedTitle(
-      text: 'FLUTTEROIDS',
-      font: menu_font,
-      scale: 0.5,
-    )..position = Vector2(16, title));
+    if (VideoMode.performance == ~video_mode) {
+      add(BitmapText(
+        text: 'FLUTTEROIDS',
+        font: menu_font,
+        scale: 0.5,
+        position: Vector2(24, title),
+      ));
+    } else {
+      add(AnimatedTitle(
+        text: 'FLUTTEROIDS',
+        font: menu_font,
+        scale: 0.5,
+      )..position = Vector2(16, title));
+    }
 
     add(_primary = PositionComponent(position: Vector2(32, offset1)));
     _primary.add(BitmapText(text: 'PRIMARY', position: Vector2(26, 0)));
