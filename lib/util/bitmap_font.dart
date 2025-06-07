@@ -106,8 +106,16 @@ abstract class BitmapFont {
 
   double scale = 1;
   double lineSpacing = 2;
-  abstract double spacing;
-  Paint paint = pixel_paint();
+  double spacing = 2;
+  var paint = pixel_paint();
+
+  /// Resets the font to its default state. Somewhat expensive. Ideally do only on "removed".
+  void reset() {
+    scale = 1;
+    lineSpacing = 2;
+    // spacing = 0;
+    paint = pixel_paint();
+  }
 
   Vector2 textSize(String text) {
     final lines = text.split('\n');
@@ -139,9 +147,6 @@ class MonospacedBitmapFont extends BitmapFont {
   final int _charHeight;
   final int _charsPerRow;
 
-  @override
-  late double spacing;
-
   MonospacedBitmapFont(this._sprite, this._charWidth, this._charHeight)
       : _charsPerRow = _sprite.srcSize.x ~/ _charWidth {
     spacing = (_charWidth * 0.1).roundToDouble();
@@ -169,6 +174,12 @@ class MonospacedBitmapFont extends BitmapFont {
         _charWidth.toDouble() * scale,
         _charHeight.toDouble() * scale,
       );
+
+  @override
+  void reset() {
+    super.reset();
+    spacing = (_charWidth * 0.1).roundToDouble();
+  }
 
   @override
   double charWidth(int charCode, [double scale = 1]) => _charWidth * scale;
@@ -208,16 +219,14 @@ class DstBitmapFont extends BitmapFont {
   final int _charHeight;
   final int _charsPerRow;
 
-  @override
-  late double spacing;
-
   DstBitmapFont(
     this._sprite,
     this._dst,
     this._charWidth,
     this._charHeight,
-  )   : _charsPerRow = _sprite.src.width ~/ _charWidth,
-        spacing = (_charWidth * 0.1).roundToDouble();
+  ) : _charsPerRow = _sprite.src.width ~/ _charWidth {
+    spacing = (_charWidth * 0.1).roundToDouble();
+  }
 
   final _cache = <int, Rect>{};
 
@@ -241,6 +250,12 @@ class DstBitmapFont extends BitmapFont {
         width * scale,
         _charHeight.toDouble() * scale,
       );
+
+  @override
+  void reset() {
+    super.reset();
+    spacing = (_charWidth * 0.1).roundToDouble();
+  }
 
   @override
   double charWidth(int charCode, [double scale = 1]) => _cachedSrc(charCode).width * scale;

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/asteroids/asteroid_collision.dart';
 import 'package:flutteroids/game/asteroids/asteroid_rendering.dart';
@@ -80,6 +81,7 @@ class Asteroid extends PositionComponent
     if (is_destroyed) {
       split_into_two();
       spawn_dust(asteroid_radius.toInt() ~/ 10);
+      audio.play(Sound.clash);
     } else {
       asteroid_hash += 0.03;
       decals.spawn(DecalKind.dust, this, pos_range: asteroid_radius / 3, vel_range: 10);

@@ -4,15 +4,18 @@ import 'package:flame/components.dart';
 import 'package:flutteroids/background/space.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/common/game_context.dart';
+import 'package:flutteroids/game/common/messages.dart';
 import 'package:flutteroids/game/player/player.dart';
 import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
+import 'package:flutteroids/util/auto_dispose.dart';
+import 'package:flutteroids/util/on_message.dart';
 
 extension GameContextExtensions on GameContext {
   WorldCamera get camera => cache.putIfAbsent('camera', () => WorldCamera());
 }
 
-class WorldCamera extends Component with GameContext {
+class WorldCamera extends Component with AutoDispose, GameContext {
   // New zone-based camera follow constants
   static const zone1_dist_end = 50.0; // Player is close
   static const zone1_speed = 0.3; // Gentle follow speed
@@ -28,12 +31,20 @@ class WorldCamera extends Component with GameContext {
   final camera_offset = v2z();
   final movement = Vector2.zero();
 
-  double test = 0;
+  @override
+  void onMount() {
+    super.onMount();
+    on_message<LeavingWarp>((_) {
+      movement.setZero();
+      target_pos.setZero();
+      camera_pos.setZero();
+      camera_offset.setZero();
+    });
+  }
 
   @override
   void update(double dt) {
     super.update(dt);
-    test += dt;
 
     movement.setFrom(player.velocity);
     movement.scale(dt);
@@ -65,8 +76,8 @@ class WorldCamera extends Component with GameContext {
 
     player.position.setFrom(camera_offset);
 
-    space.position.x += movement.x / 2000;
-    space.position.y -= movement.y / 2000;
+    space.position.x += movement.x / 5000;
+    space.position.y -= movement.y / 5000;
 
     target_pos.lerp(player.position, 0.1 * dt);
 

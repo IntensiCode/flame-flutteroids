@@ -5,27 +5,31 @@ import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/asteroids/asteroid.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/game_phase.dart';
-import 'package:flutteroids/game/common/level.dart';
+import 'package:flutteroids/game/common/messages.dart';
+import 'package:flutteroids/game/level/level.dart';
 import 'package:flutteroids/game/world/world_bounds.dart';
+import 'package:flutteroids/util/auto_dispose.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 import 'package:flutteroids/util/log.dart';
+import 'package:flutteroids/util/on_message.dart';
 import 'package:flutteroids/util/random.dart';
 
 extension GameContextExtensions on GameContext {
   Asteroids get asteroids => cache.putIfAbsent('asteroids', () => Asteroids());
 }
 
-class Asteroids extends Component with GameContext {
+class Asteroids extends Component with AutoDispose, GameContext {
   static const int max_spawn_attempts = 20;
   static const double min_spawn_separation = 100.0;
   static const double min_angle_spacing = pi / 2;
-
-  double _lastSpawnAngle = 0.0;
 
   late final _pool = ComponentRecycler(() => Asteroid(spawn), _deactivate)..precreate(32);
   late final _active = <Asteroid>[];
 
   final _direction = v2z();
+
+  double _lastSpawnAngle = 0.0;
+  bool _notified_clear = false;
 
   void _deactivate(Asteroid asteroid) {
     _active.remove(asteroid);
@@ -65,16 +69,31 @@ class Asteroids extends Component with GameContext {
   }
 
   @override
+  void onMount() {
+    on_message<GamePhaseUpdate>((msg) {
+      if (msg.phase == GamePhase.level_complete) {
+        _notified_clear = false;
+      }
+    });
+  }
+
+  @override
   void update(double dt) {
     super.update(dt);
     switch (stage.phase) {
       case GamePhase.inactive:
       case GamePhase.level_info:
-        return;
-      case GamePhase.entering_level:
-      case GamePhase.playing_level:
-      case GamePhase.level_completed:
+      case GamePhase.level_bonus:
       case GamePhase.game_over:
+        return;
+      case GamePhase.level_complete:
+        if (_active.isEmpty && !_notified_clear) {
+          _notified_clear = true;
+          send_message(AsteroidFieldCleared());
+        }
+        return;
+      case GamePhase.enter_level:
+      case GamePhase.play_level:
         _maintain_asteroid_count();
     }
   }

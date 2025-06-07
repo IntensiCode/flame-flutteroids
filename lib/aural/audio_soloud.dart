@@ -112,7 +112,7 @@ class PlatformAudioSystem extends AudioSystem {
     if (now < last_played_at + 100) return Disposable.disposed;
     _last_time[filename] = now;
 
-    final source = _one_shots.putIfAbsent(filename, () => soloud.loadAsset('assets/audio/$filename'));
+    final source = _one_shots.putIfAbsent(filename, () => soloud.loadAsset('assets/audio/$filename.ogg'));
     final volume = (volume_factor * super.sound * super.master).clamp(0.0, volume_factor * master);
     final active = await source;
     final handle = await soloud.play(active, volume: volume, looping: loop);

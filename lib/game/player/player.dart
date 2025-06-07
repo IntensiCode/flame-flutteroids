@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/common/decals.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
@@ -53,6 +54,9 @@ class AsteroidsPlayer extends PositionComponent
 
   var state = _State.inactive;
   var state_time = 0.0;
+  var jumping_countdown = 0.0;
+
+  var score = 0;
 
   @override
   bool get weapons_hot => state == _State.playing && !is_turning;
@@ -103,26 +107,41 @@ class AsteroidsPlayer extends PositionComponent
   @override
   void onMount() {
     super.onMount();
+    on_message<AsteroidDestroyed>((msg) => score += msg.asteroid.asteroid_radius.toInt());
+    on_message<AsteroidFieldCleared>((_) => _on_jumping());
+    on_message<AsteroidSplit>((msg) => score += msg.asteroid.asteroid_radius.toInt() ~/ 5);
     on_message<GamePhaseUpdate>((msg) => _handle_game_phase(msg.phase));
     max_hit_points = remaining_hit_points = 100.0;
   }
 
+  void _on_jumping() {
+    jumping_countdown = 5.0;
+    audio.play_one_shot_sample('voice/jumping');
+  }
+
   void _handle_game_phase(GamePhase phase) {
     state_time = 0.0;
+    jumping_countdown = 0.0;
 
     switch (phase) {
       case GamePhase.level_info:
         state = _State.inactive;
         isVisible = false;
-      case GamePhase.entering_level:
+        _reset_position();
+      case GamePhase.enter_level:
         state = _State.inactive;
         isVisible = false;
-      case GamePhase.playing_level:
+      case GamePhase.play_level:
         state = _State.teleporting_in;
         decals.spawn(DecalKind.teleport, this);
-      case GamePhase.level_completed:
-        state = _State.teleporting_out;
-        decals.spawn(DecalKind.teleport, this);
+        audio.play(Sound.teleport_long);
+      case GamePhase.level_complete:
+        state = _State.playing;
+        isVisible = true;
+      case GamePhase.level_bonus:
+        state = _State.inactive;
+        isVisible = false;
+        _reset_position();
       case GamePhase.game_over:
         state = _State.inactive;
         isVisible = false;
@@ -132,6 +151,12 @@ class AsteroidsPlayer extends PositionComponent
     }
 
     log_debug('Player phase update: $state');
+  }
+
+  void _reset_position() {
+    position.setZero();
+    velocity.setZero();
+    movement_angle = -pi / 2;
   }
 
   @override
@@ -157,6 +182,16 @@ class AsteroidsPlayer extends PositionComponent
         return; // Skip _PlayerMovement.update
 
       case _State.playing:
+        if (jumping_countdown > 0) {
+          jumping_countdown = max(0, jumping_countdown - dt);
+          if (jumping_countdown <= 0) {
+            state = _State.teleporting_out;
+            decals.spawn(DecalKind.teleport, this);
+            audio.play(Sound.teleport_long);
+            send_message(PlayerLeft());
+            return; // Skip _PlayerMovement.update
+          }
+        }
         break;
 
       case _State.teleporting_in:
@@ -166,6 +201,7 @@ class AsteroidsPlayer extends PositionComponent
         if (state_time >= 1.0) {
           state = _State.playing;
           send_message(PlayerReady());
+          log_debug('Player is ready');
         } else if (state_time <= 0.5) {
           return; // Skip _PlayerMovement.update
         }
@@ -177,6 +213,7 @@ class AsteroidsPlayer extends PositionComponent
         if (state_time >= 1.0) {
           state = _State.inactive;
           send_message(PlayerLeft());
+          log_debug('Player left the game');
         } else if (state_time >= 0.25) {
           return; // Skip _PlayerMovement.update
         }
@@ -208,6 +245,7 @@ class AsteroidsPlayer extends PositionComponent
   @override
   void on_collect_extra(ExtraId which) {
     log_warn('Player collected extra: $which');
+    score += 10;
     switch (which) {
       case ExtraId.plasma_gun:
         weapon_system.on_weapon(which);

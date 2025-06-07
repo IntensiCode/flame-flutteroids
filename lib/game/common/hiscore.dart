@@ -16,6 +16,8 @@ class Hiscore extends Component with HasGameData {
 
   final entries = List.generate(number_of_entries, _default_rank);
 
+  int get top_hiscore => entries.first.score;
+
   HiscoreRank? latest_rank;
 
   static HiscoreRank _default_rank(int idx) => HiscoreRank(100000 - idx * 10000, 10 - idx, 'INTENSICODE');

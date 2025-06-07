@@ -20,6 +20,7 @@ class ShowInfoText with Message {
   ShowInfoText({
     this.title,
     required this.text,
+    this.secondary,
     this.blink_text = true,
     this.hud_align = false,
     this.stay_longer = false,
@@ -28,6 +29,7 @@ class ShowInfoText with Message {
 
   String? title;
   final String text;
+  final String? secondary;
   final bool blink_text;
   final bool hud_align;
   final bool stay_longer;

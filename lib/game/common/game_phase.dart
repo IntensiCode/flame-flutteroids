@@ -1,9 +1,10 @@
 enum GamePhase {
   inactive,
   level_info,
-  entering_level,
-  playing_level,
-  level_completed,
+  enter_level,
+  play_level,
+  level_complete,
+  level_bonus,
   game_over,
   ;
 

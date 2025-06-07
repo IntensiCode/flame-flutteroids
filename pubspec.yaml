@@ -44,6 +44,7 @@ flutter:
     - assets/audio/
     - assets/audio/music/
     - assets/audio/sound/
+    - assets/audio/voice/
     - assets/data/
     - assets/images/
     - assets/images/voxel/
@@ -58,3 +59,4 @@ flutter:
     - assets/shaders/space.frag
     - assets/shaders/voxel3d.frag
     - assets/shaders/voxel3d_exploding.frag
+    - assets/shaders/warp.frag

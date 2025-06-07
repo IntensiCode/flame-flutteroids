@@ -14,6 +14,7 @@ extension ComponentExtensions on Component {
   void show_info(
     String text, {
     String? title,
+    String? secondary,
     bool blink = true,
     bool longer = false,
     Function? done,
@@ -21,6 +22,7 @@ extension ComponentExtensions on Component {
     send_message(ShowInfoText(
       title: title,
       text: text,
+      secondary: secondary,
       blink_text: blink,
       stay_longer: longer,
       when_done: done,
@@ -56,11 +58,13 @@ class _InfoOverlay extends GameScriptComponent {
 
   late final BitmapText _title_text;
   late final BitmapText _text;
+  late final BitmapText _secondary_text;
 
   @override
   onLoad() {
     add(_title_text = textXY('', pos.x, pos.y - 20, scale: 1.5)..isVisible = false);
     add(_text = textXY('', pos.x, pos.y)..isVisible = false);
+    add(_secondary_text = textXY('', pos.x, pos.y + 20)..isVisible = false);
   }
 
   @override
@@ -105,6 +109,10 @@ class _InfoOverlay extends GameScriptComponent {
       _text.isVisible = true;
       _text.change_text_in_place(it.text);
       _text.fadeInDeep();
+
+      _secondary_text.isVisible = it.secondary != null;
+      _secondary_text.change_text_in_place(it.secondary ?? '');
+      if (it.secondary != null) _secondary_text.fadeInDeep();
     });
   }
 
@@ -119,6 +127,7 @@ class _InfoOverlay extends GameScriptComponent {
     script_after(0.4, () => _text.fadeOutDeep(and_remove: false));
     script_after(0.0, () {
       if (it.title != null) _title_text.fadeOutDeep(and_remove: false);
+      if (it.secondary != null) _secondary_text.fadeOutDeep(and_remove: false);
     });
     script_after(0.4, () => it.when_done?.call());
   }
@@ -127,6 +136,7 @@ class _InfoOverlay extends GameScriptComponent {
     script_after(quick ? 0.0 : 1.0, () => _text.fadeOutDeep(and_remove: false));
     script_after(0.0, () {
       if (it.title != null) _title_text.fadeOutDeep(and_remove: false);
+      if (it.secondary != null) _secondary_text.fadeOutDeep(and_remove: false);
     });
     script_after(quick ? 0.2 : 0.5, () => it.when_done?.call());
   }

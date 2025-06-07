@@ -195,8 +195,8 @@ class Extra extends SpriteComponent with CollisionCallbacks, GameContext, Recycl
     if (_delay > 0) {
       _delay = max(0, _delay - dt);
       if (_delay <= 0) {
-        decals.spawn(DecalKind.teleport, this);
         _find_spot();
+        decals.spawn(DecalKind.teleport, this);
       }
       return;
     }

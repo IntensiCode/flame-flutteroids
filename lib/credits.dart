@@ -21,6 +21,7 @@ final credits = [
   'Voxel Shader by intensicode.itch.io',
   'Pixel Explosion Shader by Leukbaars',
   'Space Shader by Pablo Roman Andrioli',
+  'Warp Shader by Dave_Hoskins',
   'Asteroid Shader by foxes',
 ];
 

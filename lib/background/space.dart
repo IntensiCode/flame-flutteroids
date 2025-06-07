@@ -40,8 +40,12 @@ class Space extends Component with AutoDispose, HasPaint {
 
   static double _time = 0;
   static bool _animate = true;
+  static bool _override_disable_anim = false;
 
   final position = Vector2.zero();
+
+  bool get _animated => _animate && !_override_disable_anim;
+  set override_disable_anim(bool value) => _override_disable_anim = value;
 
   Space._();
 
@@ -89,7 +93,7 @@ class Space extends Component with AutoDispose, HasPaint {
   @override
   void update(double dt) {
     super.update(dt);
-    if (_last != null && !_animate) return;
+    if (_last != null && !_animated) return;
     _time += dt;
     _uniforms!.set(Uniform.time, _time / 32);
     _uniforms!.set(Uniform.position, position);
@@ -101,7 +105,7 @@ class Space extends Component with AutoDispose, HasPaint {
   void render(Canvas canvas) {
     super.render(canvas);
 
-    if (_animate) {
+    if (_animated) {
       _last?.dispose();
       _last = null;
       canvas.drawRect(_dst, _paint!);

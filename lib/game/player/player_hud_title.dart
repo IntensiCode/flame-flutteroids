@@ -5,7 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/util/bitmap_font.dart';
 
-class PlayerHudTitle extends PositionComponent {
+class PlayerHudTitle extends PositionComponent with Snapshot {
   static const rotation_interval = 10.0;
   static const letter_delay = 0.2;
   static const rotation_duration = 2.0;
@@ -50,6 +50,16 @@ class PlayerHudTitle extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     _time += dt;
+
+    var snapped = true;
+    for (int i = 0; i < _text.length; i++) {
+      final scale_x = scale_at(_time, i);
+      final scale_y = scale_at(rotation_duration / 3 + _time, i);
+      if (scale_x != 1.0 || scale_y != 1.0) {
+        snapped = false;
+      }
+    }
+    this.renderSnapshot = snapped;
   }
 
   double scale_at(double time, int letter_index) {

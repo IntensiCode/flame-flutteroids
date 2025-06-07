@@ -10,6 +10,8 @@ class AsteroidDestroyed with Message {
   AsteroidDestroyed(this.asteroid);
 }
 
+class AsteroidFieldCleared with Message {}
+
 class AsteroidSplit with Message {
   final Asteroid asteroid;
 
@@ -46,6 +48,8 @@ class LeavingLevel with Message {
 
   final int next;
 }
+
+class LeavingWarp with Message {}
 
 class LevelComplete with Message {
   LevelComplete(this.message);

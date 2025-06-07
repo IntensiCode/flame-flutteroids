@@ -28,6 +28,7 @@ enum Sound {
   shot2,
   swirl,
   teleport,
+  teleport_long,
   trigger,
   ;
 }

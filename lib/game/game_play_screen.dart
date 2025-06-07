@@ -7,16 +7,17 @@ import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/game_phase.dart';
-import 'package:flutteroids/game/common/level.dart';
 import 'package:flutteroids/game/common/messages.dart';
 import 'package:flutteroids/game/common/screens.dart';
 import 'package:flutteroids/game/debug_overlay.dart';
 import 'package:flutteroids/game/game_screen.dart';
 import 'package:flutteroids/game/info_overlay.dart';
+import 'package:flutteroids/game/level/level.dart';
 import 'package:flutteroids/game/level_info.dart';
 import 'package:flutteroids/game/player/player.dart';
 import 'package:flutteroids/game/player/player_hud.dart';
 import 'package:flutteroids/game/player/player_radar.dart';
+import 'package:flutteroids/game/transitions/warp_transition.dart';
 import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/game/world/world_camera.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
@@ -49,6 +50,7 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
       onKey('<A-l>', () => _on_level_complete());
       onKey('<A-n>', () => change_level(1));
       onKey('<A-p>', () => change_level(-1));
+      onKey('<A-s>', () => player.score += 10000);
       onKey('<A-S-N>', () => change_level(10));
       onKey('<A-S-P>', () => change_level(-10));
     }
@@ -60,6 +62,7 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
 
     on_message<LevelComplete>((it) => _on_level_complete(it.message));
     on_message<PlayerDestroyed>((_) => _activate_phase(GamePhase.game_over));
+    on_message<PlayerLeft>((_) => _activate_phase(GamePhase.level_bonus));
 
     on_message<AsteroidDestroyed>(_on_asteroid_destroyed);
     on_message<AsteroidSplit>(_on_asteroid_split);
@@ -67,7 +70,7 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
 
   void _on_level_complete([String? message]) {
     _complete_message = message;
-    _activate_phase(GamePhase.level_completed);
+    _activate_phase(GamePhase.level_complete);
   }
 
   void _on_asteroid_split(AsteroidSplit msg) {
@@ -116,9 +119,10 @@ mixin _GamePhaseTransition on GameScreen, GameContext {
   // 0 means no auto-advance
   final _phase_duration = {
     GamePhase.level_info: 0.0,
-    GamePhase.entering_level: 2.0,
-    GamePhase.playing_level: 0.0,
-    GamePhase.level_completed: 2.0,
+    GamePhase.enter_level: 2.0,
+    GamePhase.play_level: 0.0,
+    GamePhase.level_complete: 0.0,
+    GamePhase.level_bonus: 0.0,
     GamePhase.game_over: 3.0,
   };
 
@@ -146,10 +150,8 @@ mixin _GamePhaseTransition on GameScreen, GameContext {
   void _auto_progression() {
     if (_phase_timer > 0) return;
     switch (phase) {
-      case GamePhase.entering_level:
-        _activate_phase(GamePhase.playing_level);
-      case GamePhase.level_completed:
-        _activate_phase(GamePhase.level_info);
+      case GamePhase.enter_level:
+        _activate_phase(GamePhase.play_level);
       case GamePhase.game_over:
         _activate_phase(GamePhase.inactive);
         show_screen(Screen.title);
@@ -160,17 +162,21 @@ mixin _GamePhaseTransition on GameScreen, GameContext {
 
   void _activate_phase(GamePhase? next) {
     removeAll(children.whereType<LevelInfo>());
+    world.removeAll(world.children.whereType<WarpTransition>());
+
     _pending_phase = null;
     _phase_timer = _phase_duration[next] ?? 0.0;
     switch (next) {
       case GamePhase.level_info:
         show_level_info();
-      case GamePhase.entering_level:
+      case GamePhase.enter_level:
         enter_level();
-      case GamePhase.playing_level:
+      case GamePhase.play_level:
         play_level();
-      case GamePhase.level_completed:
+      case GamePhase.level_complete:
         level_complete();
+      case GamePhase.level_bonus:
+        show_level_bonus();
       case GamePhase.game_over:
         game_over();
       case GamePhase.inactive:
@@ -181,23 +187,24 @@ mixin _GamePhaseTransition on GameScreen, GameContext {
   }
 
   void enter_level({bool notify = true}) {
-    phase = GamePhase.entering_level;
+    phase = GamePhase.enter_level;
     // send_message(EnteringLevel(current_level));
     if (notify) {
-      show_info('Entering Asteroid Field...', title: 'GAME ON', longer: true);
+      show_info('ENTERING ASTEROID FIELD', title: 'GAME ON', longer: true);
     }
   }
 
   void play_level() {
-    phase = GamePhase.playing_level;
+    phase = GamePhase.play_level;
     // send_message(PlayingLevel(current_level));
   }
 
   void level_complete() {
-    phase = GamePhase.level_completed;
+    phase = GamePhase.level_complete;
     show_info(
       _complete_message ?? '',
       title: 'LEVEL COMPLETE',
+      secondary: 'CLEAR REMAINING ASTEROIDS',
       longer: true,
     );
   }
@@ -213,8 +220,8 @@ mixin _GamePhaseTransition on GameScreen, GameContext {
       text: level_description,
       position: v2(408, game_height / 3),
       on_done: () {
-        _pending_phase = GamePhase.entering_level;
-        _phase_timer = 1;
+        _pending_phase = GamePhase.enter_level;
+        _phase_timer = 0.5;
       },
     ));
   }
@@ -227,6 +234,31 @@ mixin _GamePhaseTransition on GameScreen, GameContext {
       title: 'GAME OVER',
       longer: true,
     );
-    audio.play(Sound.game_over);
+  }
+
+  void show_level_bonus() {
+    phase = GamePhase.level_bonus;
+
+    final bonus_title = 'LEVEL $current_level COMPLETE';
+    final bonus_description = 'Score: ${player.score}';
+    log_debug('Showing level bonus: $bonus_title - $bonus_description');
+    add(LevelInfo(
+      title: bonus_title,
+      text: bonus_description,
+      position: v2(408, game_height / 3),
+      on_done: () => _start_warp_transition(),
+    ));
+  }
+
+  void _start_warp_transition() {
+    log_debug('Starting warp transition');
+    world.add(WarpTransition(
+      on_complete: () {
+        _pending_phase = GamePhase.level_info;
+        _phase_timer = 0.5;
+        current_level += 1;
+        level.set_level(current_level);
+      },
+    ));
   }
 }
