@@ -71,19 +71,36 @@ class Extras extends Component with GameContext {
     }
   }
 
+  void spawn_multi(WorldEntity origin, {required Set<ExtraId> choices, int count = 1}) {
+    if (count <= 0) return;
+    if (choices.isEmpty) return;
+
+    log_debug('Spawning $count extras from $choices');
+
+    for (int i = 0; i < count; i++) {
+      spawn(origin, choices: choices, index: i, count: count);
+    }
+  }
+
   void spawn(WorldEntity origin, {required Set<ExtraId> choices, int? index, int? count}) {
     final pick = _pick_power_up(choices);
     if (pick == null) return;
 
     log_debug('Spawning extra: $pick');
 
-    final extra = parent?.added(_pool.acquire()..reset(pick, origin));
-    if (index != null && count != null && count > 1) {
-      final distance = count * 6;
-      final angle = 2 * pi * index / count;
-      extra?.world_pos.x += cos(angle) * distance;
-      extra?.world_pos.y += sin(angle) * distance;
+    final extra = world.added(_pool.acquire()..reset(pick, origin));
+    if (count != null && count > 1) {
+      // If we have multiple extras, spread them around the origin:
+      final dist = count * 4.0;
+      extra.world_pos.x += level_rng.nextDoublePM(dist);
+      extra.world_pos.y += level_rng.nextDoublePM(dist);
     }
+    // if (index != null && count != null && count > 1) {
+    //   final distance = count * 6;
+    //   final angle = 2 * pi * index / count;
+    //   extra.world_pos.x += cos(angle) * distance;
+    //   extra.world_pos.y += sin(angle) * distance;
+    // }
   }
 
   ExtraId? _pick_power_up(Set<ExtraId> allowed) {
@@ -138,7 +155,7 @@ class Extras extends Component with GameContext {
   }
 }
 
-class Extra extends SpriteComponent with CollisionCallbacks, GameContext, Recyclable, WorldEntity {
+class Extra extends SpriteComponent with GameContext, Recyclable, WorldEntity {
   static const double lifetime = 8;
   static const double pulse_start = 5;
 
@@ -159,7 +176,7 @@ class Extra extends SpriteComponent with CollisionCallbacks, GameContext, Recycl
     _sweep.animation?.loop = false;
 
     add(_sweep);
-    add(CircleHitbox(anchor: Anchor.center, isSolid: true)..anchor_to_parent());
+    add(CircleHitbox(anchor: Anchor.center, isSolid: true, collisionType: CollisionType.passive)..anchor_to_parent());
   }
 
   late final SpriteAnimationComponent _sweep;
@@ -247,13 +264,13 @@ class Extra extends SpriteComponent with CollisionCallbacks, GameContext, Recycl
     }
   }
 
-  @override
-  void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
-    super.onCollision(intersectionPoints, other);
-    if (recycled || player.is_destroyed) return;
-    if (other == player) {
-      player.on_collect_extra(which);
-      recycle();
-    }
-  }
+// @override
+// void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
+//   super.onCollision(intersectionPoints, other);
+//   if (recycled) return;
+//   if (other == player && !player.is_destroyed) {
+//     player.on_collect_extra(which);
+//     recycle();
+//   }
+// }
 }

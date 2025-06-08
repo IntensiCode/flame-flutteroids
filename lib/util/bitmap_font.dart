@@ -157,6 +157,7 @@ class MonospacedBitmapFont extends BitmapFont {
   final _src = MutableRect.fromRect(Rect.zero);
 
   Rect _cachedSrc(int charCode) => _cache.putIfAbsent(charCode, () {
+        charCode = charCode.clamp(32, 32 + 128);
         final x = (charCode - 32) % _charsPerRow;
         final y = (charCode - 32) ~/ _charsPerRow;
         final rect = Rect.fromLTWH(
@@ -231,6 +232,7 @@ class DstBitmapFont extends BitmapFont {
   final _cache = <int, Rect>{};
 
   Rect _cachedSrc(int charCode) => _cache.putIfAbsent(charCode, () {
+        charCode = charCode.clamp(32, _dst.length + 32);
         final x = (charCode - 32) % _charsPerRow;
         final y = (charCode - 32) ~/ _charsPerRow;
         var width = _dst[charCode - 32];

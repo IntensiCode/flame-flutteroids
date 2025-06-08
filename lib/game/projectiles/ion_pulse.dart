@@ -30,7 +30,7 @@ class IonPulse extends SpriteComponent
     add(CircleHitbox(radius: 8, isSolid: true));
   }
 
-  void reset_with_delay(Player origin, double angle, double delay, [int boost = 0]) {
+  void reset_with_delay(Target origin, double angle, double delay, [int boost = 0]) {
     damage = 1.0 * (1 + 0.5 * (boost / PrimaryWeapon.max_boosts));
     super.reset(origin, angle);
     appear_delay = delay;
@@ -69,7 +69,8 @@ class IonPulse extends SpriteComponent
     super.onCollision(intersectionPoints, other);
     if (recycled) return;
     if (other case Hostile it when it.susceptible) {
-      it.on_hit(damage * size_anim.abs());
+      final hit_point = it.calculate_hit_point(it, intersectionPoints);
+      it.on_hit(damage * size_anim.abs(), hit_point);
       size_anim = -1;
       change_direction(level_rng.nextDoublePM(pi / 4));
     }

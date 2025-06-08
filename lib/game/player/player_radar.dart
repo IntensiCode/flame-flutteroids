@@ -6,6 +6,7 @@ import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/asteroids/asteroid.dart';
 import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
+import 'package:flutteroids/game/common/kinds.dart';
 import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/util/mutable.dart';
 
@@ -15,7 +16,7 @@ extension GameContextExtensions on GameContext {
 
 class PlayerRadar extends PositionComponent with GameContext {
   static const extra_indicator_radius = 3.0;
-  static const base_indicator_size = 12.0;
+  static const base_indicator_size = 8.0;
   static const indicator_distance = 0.0;
   static const max_fade_distance = 800.0;
 
@@ -33,6 +34,15 @@ class PlayerRadar extends PositionComponent with GameContext {
     Color(0xFFFF6000), // red-orange
     Color(0xFFFF4000), // red
     Color(0xFFFF0000), // pure red
+  ];
+
+  static final _enemy_colors = [
+    Color(0xFFEE82EE),
+    Color(0xFFDA70D6),
+    Color(0xFFBA55D3),
+    Color(0xFF9932CC),
+    Color(0xFF8A2BE2),
+    Color(0xFF7020D0),
   ];
 
   final _offset = MutableOffset(0, 0);
@@ -53,8 +63,8 @@ class PlayerRadar extends PositionComponent with GameContext {
   final _perpendicular = Vector2.zero();
   final _to_player = Vector2.zero();
 
-  late double world_half_width;
-  late double world_half_height;
+  late double viewport_half_width;
+  late double viewport_half_height;
 
   @override
   Future<void> onLoad() async {
@@ -66,54 +76,87 @@ class PlayerRadar extends PositionComponent with GameContext {
   @override
   void onMount() {
     size.setAll(world.world_viewport_size);
-    world_half_width = size.x / 2;
-    world_half_height = size.y / 2;
+    viewport_half_width = size.x / 2;
+    viewport_half_height = size.y / 2;
   }
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
 
-    canvas.translate(world_half_width, world_half_height);
+    canvas.translate(viewport_half_width, viewport_half_height);
 
     for (final child in world.children) {
-      if (child is PositionComponent && _is_outside_world(child)) {
+      if (child is PositionComponent && _is_outside_viewport(child)) {
         if (child is Extra) {
           _draw_extra_indicator(canvas, child);
         } else if (child is Asteroid) {
           _draw_asteroid_indicator(canvas, child);
+        } else if (child is Enemy) {
+          _draw_enemy_indicator(canvas, child);
         }
       }
     }
 
-    canvas.translate(-world_half_width, -world_half_height);
+    canvas.translate(-viewport_half_width, -viewport_half_height);
   }
 
-  bool _is_outside_world(PositionComponent component) {
-    return component.position.x.abs() > world_half_width || component.position.y.abs() > world_half_height;
+  bool _is_outside_viewport(PositionComponent component) {
+    return component.position.x.abs() > viewport_half_width || component.position.y.abs() > viewport_half_height;
   }
 
   void _draw_asteroid_indicator(Canvas canvas, Asteroid asteroid) {
-    final screen_pos = asteroid.position;
+    final radius_factor = (asteroid.asteroid_radius / 60.0).clamp(0.5, 2.0);
+    final size_multiplier = radius_factor;
+
+    _draw_triangle_indicator(
+      canvas: canvas,
+      entity: asteroid,
+      size_multiplier: size_multiplier,
+      coloring: _approach_colors,
+    );
+  }
+
+  void _draw_enemy_indicator(Canvas canvas, Enemy enemy) {
+    _draw_triangle_indicator(
+      canvas: canvas,
+      entity: enemy,
+      size_multiplier: 1.2, // Slightly larger than default
+      coloring: _enemy_colors,
+    );
+  }
+
+  void _draw_triangle_indicator({
+    required Canvas canvas,
+    required Target entity,
+    required double size_multiplier,
+    required List<Color> coloring,
+  }) {
+    final screen_pos = (entity as PositionComponent).position;
     final distance = screen_pos.length;
     final fade_factor = (distance / max_fade_distance).clamp(0.0, 1.0);
     final curved_fade = Curves.easeInCubic.transform(fade_factor);
     final size_factor = 1.0 - (curved_fade * 0.6);
-    final radius_factor = (asteroid.asteroid_radius / 60.0).clamp(0.5, 2.0);
-    final indicator_size = base_indicator_size * size_factor * radius_factor;
+    final indicator_size = base_indicator_size * size_factor * size_multiplier;
 
+    // Check if approaching player
     _to_player.setFrom(screen_pos);
-    _to_player.add(asteroid.velocity);
+    _to_player.add(entity.velocity);
+
+    // TODO How does this work?
     final is_approaching = _to_player.length < screen_pos.length;
 
+    // Determine color based on approach and distance
     final color_index = (is_approaching ? (1 - fade_factor) * 12 : curved_fade * 7).round();
-    final colors = is_approaching ? _approach_colors : _fade_colors;
+    final colors = is_approaching ? coloring : _fade_colors;
     final color = colors[color_index.clamp(0, colors.length - 1)];
 
     _direction.setFrom(screen_pos);
     _direction.normalize();
 
-    final velocity_direction = asteroid.velocity.normalized();
+    // Determine velocity direction for triangle orientation
+    final velocity_direction = entity.velocity.normalized();
+
     final triangle_offset = _calculate_triangle_offset(_direction, velocity_direction, indicator_size);
 
     _update_boundary_position(_direction, triangle_offset);
@@ -130,12 +173,13 @@ class PlayerRadar extends PositionComponent with GameContext {
     final abs_y = direction.y.abs();
 
     if (abs_x > abs_y) {
-      final x = direction.x > 0 ? world_half_width - indicator_distance : -world_half_width + indicator_distance;
-      final y = (direction.y / abs_x) * (world_half_width - indicator_distance);
+      final x = direction.x > 0 ? viewport_half_width - indicator_distance : -viewport_half_width + indicator_distance;
+      final y = (direction.y / abs_x) * (viewport_half_width - indicator_distance);
       _pos.setValues(x + offset.x, y + offset.y);
     } else {
-      final y = direction.y > 0 ? world_half_height - indicator_distance : -world_half_height + indicator_distance;
-      final x = (direction.x / abs_y) * (world_half_height - indicator_distance);
+      final y =
+          direction.y > 0 ? viewport_half_height - indicator_distance : -viewport_half_height + indicator_distance;
+      final x = (direction.x / abs_y) * (viewport_half_height - indicator_distance);
       _pos.setValues(x + offset.x, y + offset.y);
     }
   }

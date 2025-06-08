@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutteroids/core/common.dart';
-import 'package:flutteroids/game/asteroids/asteroid_collision.dart';
 import 'package:flutteroids/game/asteroids/asteroid_rendering.dart';
 import 'package:flutteroids/game/asteroids/asteroid_splitting.dart';
 import 'package:flutteroids/game/common/decals.dart';
@@ -11,6 +10,7 @@ import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/kinds.dart';
 import 'package:flutteroids/game/common/messages.dart';
 import 'package:flutteroids/game/common/sound.dart';
+import 'package:flutteroids/game/common/target_collisions.dart';
 import 'package:flutteroids/game/world/world_bounds.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/component_recycler.dart';
@@ -20,18 +20,27 @@ class Asteroid extends PositionComponent
     with
         GameContext,
         CollisionCallbacks,
-        OnHit,
+        Target,
         Hostile,
         Recyclable,
         WorldEntity,
         AsteroidSplitting,
-        AsteroidCollision,
+        TargetCollisions,
         AsteroidRendering {
   //
 
   double rotation_speed = 0.0;
 
   final _hitbox = CircleHitbox(radius: 0, isSolid: true);
+
+  @override
+  double get fake_mass => asteroid_radius * asteroid_radius * 0.5;
+
+  @override
+  double get elastic_factor => 1.0;
+
+  @override
+  Vector2 get world_size => size;
 
   @override
   bool get susceptible => is_in_active_area(world_pos);
@@ -74,24 +83,33 @@ class Asteroid extends PositionComponent
   }
 
   @override
-  void on_hit(double damage) {
-    super.on_hit(damage);
+  void on_hit(double damage, Vector2 hit_point) {
+    super.on_hit(damage, hit_point);
 
     if (is_destroyed) {
       split_into_two();
-      spawn_dust(asteroid_radius.toInt() ~/ 10);
-      play_sound(Sound.clash, volume_factor: asteroid_radius / 50);
+      play_sound(Sound.clash, volume_factor: (asteroid_radius / 50).clamp(0.1, 1.0));
     } else {
       asteroid_hash += 0.03;
-      decals.spawn(DecalKind.dust, this, pos_range: asteroid_radius / 3, vel_range: 10);
-      // play_sound(Sound.clash, volume_factor: asteroid_radius / 100);
+      play_sound(Sound.clash, volume_factor: (asteroid_radius / 150).clamp(0.1, 1.0));
     }
   }
 
   @override
-  void spawn_dust(int count) {
+  void spawn_damage_decals(double damage, Vector2 hit_point) {
+    // log_debug(
+    //   'Asteroid spawn_collision_decals: $damage\n'
+    //   'Asteroid wp: $world_pos HP: $hit_point AP: $position\n',
+    // );
+    final count = (damage / 5).clamp(2, 10).toInt();
     for (int i = 0; i < count; i++) {
-      decals.spawn(DecalKind.dust, this, pos_range: asteroid_radius / 3, vel_range: 10);
+      decals.spawn(
+        DecalKind.dust,
+        this,
+        pos_override: hit_point,
+        pos_range: asteroid_radius / 3,
+        vel_range: 4,
+      );
     }
   }
 }

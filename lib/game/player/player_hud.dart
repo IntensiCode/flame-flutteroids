@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/common/animated_title.dart';
+import 'package:flutteroids/game/common/configuration.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
@@ -11,6 +12,7 @@ import 'package:flutteroids/game/common/game_phase.dart';
 import 'package:flutteroids/game/common/hiscore.dart';
 import 'package:flutteroids/game/common/messages.dart';
 import 'package:flutteroids/game/common/sound.dart';
+import 'package:flutteroids/game/common/video_mode.dart';
 import 'package:flutteroids/game/info_overlay.dart';
 import 'package:flutteroids/game/player/deflector_shield.dart';
 import 'package:flutteroids/game/player/player.dart';
@@ -31,45 +33,6 @@ class PlayerHud extends PositionComponent with AutoDispose, GameContext {
     size.x = game_size.x - min(game_size.x, game_size.y) - 32;
     size.y = game_size.y;
     log_verbose("Player HUD size: $size");
-
-    add(PlayerHudBackground(hud_size: size));
-    add(PlayerHudBackground(hud_size: Vector2(32, size.y))
-      ..position = Vector2(game_size.x + 1, 0)
-      ..scale.x = -1);
-
-    const title = 24.0;
-    const hiscore_top = 64.0;
-    const score_top = hiscore_top + 40.0;
-    const indicators_top = score_top + 56.0;
-    const offset1 = indicators_top + 80.0;
-    const offset2 = offset1 + 40.0;
-
-    add(PositionComponent(position: Vector2(32, hiscore_top))
-      ..add(BitmapText(text: 'HISCORE', position: Vector2(26, 0)))
-      ..add(_hiscore_value = BitmapText(text: '${hiscore.top_hiscore}', position: Vector2(26, 16))));
-
-    add(PositionComponent(position: Vector2(32, score_top))
-      ..add(BitmapText(text: 'SCORE', position: Vector2(26, 0)))
-      ..add(_score_value = BitmapText(text: '${_player.score}', position: Vector2(26, 16))));
-
-    add(_indicators = PositionComponent(position: Vector2(32, indicators_top))
-      ..add(BitmapText(text: 'SHIELD', position: Vector2(26, 2)))
-      ..add(BitmapText(text: 'INTEGRITY', position: Vector2(26, 26)))
-      ..add(BitmapText(text: 'COOLDOWN', position: Vector2(26, 50))));
-
-    add(AnimatedTitle(
-      text: 'FLUTTEROIDS',
-      font: menu_font,
-      scale: 0.5,
-    )..position = Vector2(16, title));
-
-    add(_primary = PositionComponent(position: Vector2(32, offset1)));
-    _primary.add(BitmapText(text: 'PRIMARY', position: Vector2(26, 0)));
-
-    add(_secondary = PositionComponent(position: Vector2(32, offset2)));
-    _secondary.add(BitmapText(text: 'SECONDARY', position: Vector2(26, 0)));
-
-    this.fadeInDeep();
   }
 
   final _extra_blink_timer = <ExtraId, double>{};
@@ -96,6 +59,59 @@ class PlayerHud extends PositionComponent with AutoDispose, GameContext {
   double _score_per_second = 1000.0;
   bool _is_hiscore_rank = false;
   bool _is_new_hiscore = false;
+
+  @override
+  Future onLoad() async {
+    super.onLoad();
+
+    await add(PlayerHudBackground(hud_size: size));
+    await add(PlayerHudBackground(hud_size: Vector2(32, size.y))
+      ..position = Vector2(game_size.x + 1, 0)
+      ..scale.x = -1);
+
+    const title = 24.0;
+    const hiscore_top = 64.0;
+    const score_top = hiscore_top + 40.0;
+    const indicators_top = score_top + 56.0;
+    const offset1 = indicators_top + 80.0;
+    const offset2 = offset1 + 40.0;
+
+    await add(PositionComponent(position: Vector2(32, hiscore_top))
+      ..add(BitmapText(text: 'HISCORE', position: Vector2(26, 0)))
+      ..add(_hiscore_value = BitmapText(text: '${hiscore.top_hiscore}', position: Vector2(26, 16))));
+
+    await add(PositionComponent(position: Vector2(32, score_top))
+      ..add(BitmapText(text: 'SCORE', position: Vector2(26, 0)))
+      ..add(_score_value = BitmapText(text: '${_player.score}', position: Vector2(26, 16))));
+
+    await add(_indicators = PositionComponent(position: Vector2(32, indicators_top))
+      ..add(BitmapText(text: 'SHIELD', position: Vector2(26, 2)))
+      ..add(BitmapText(text: 'INTEGRITY', position: Vector2(26, 26)))
+      ..add(BitmapText(text: 'COOLDOWN', position: Vector2(26, 50))));
+
+    if (VideoMode.performance == ~video_mode) {
+      await add(BitmapText(
+        text: 'FLUTTEROIDS',
+        font: menu_font,
+        scale: 0.5,
+        position: Vector2(24, title),
+      ));
+    } else {
+      await add(AnimatedTitle(
+        text: 'FLUTTEROIDS',
+        font: menu_font,
+        scale: 0.5,
+      )..position = Vector2(16, title));
+    }
+
+    await add(_primary = PositionComponent(position: Vector2(32, offset1)));
+    _primary.add(BitmapText(text: 'PRIMARY', position: Vector2(26, 0)));
+
+    await add(_secondary = PositionComponent(position: Vector2(32, offset2)));
+    _secondary.add(BitmapText(text: 'SECONDARY', position: Vector2(26, 0)));
+
+    this.fadeInDeep();
+  }
 
   @override
   void onMount() {

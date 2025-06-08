@@ -51,7 +51,7 @@ class NukeMissile extends SpriteComponent
   double get base_speed => _speed;
 
   @override
-  void reset(Player origin, double angle, [int boost = 0]) {
+  void reset(Target origin, double angle, [int boost = 0]) {
     _speed = 100;
     _boost = boost;
     super.reset(origin, angle);
@@ -143,7 +143,8 @@ class NukeMissile extends SpriteComponent
     if (recycled) return;
     if (other case Hostile it when it.susceptible) {
       final scale = 1.0 + 0.25 * (_boost / SecondaryWeapon.max_boosts);
-      it.on_hit(50 * scale);
+      final hit_point = it.calculate_hit_point(it, intersectionPoints);
+      it.on_hit(50 * scale, hit_point);
       _emit_nuke(this, _boost);
       recycle();
     }

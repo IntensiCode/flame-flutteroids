@@ -9,15 +9,16 @@ import 'package:flutteroids/game/projectiles/directional_projectile.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 
-class PlasmaShot extends PositionComponent with CollisionCallbacks, Recyclable, WorldEntity, DirectionalProjectile {
-  static const _blue1 = Color(0xF0a0a0ff);
-  static const _blue2 = Color(0xA020209f);
+class EnemyProjectile extends PositionComponent
+    with CollisionCallbacks, Recyclable, WorldEntity, DirectionalProjectile {
+  //
 
-  static double power_boost = 1;
+  static const _green1 = Color(0xF080ff80); // Light green (inside)
+  static const _green2 = Color(0xA0006000); // Dark green (outside)
 
   static final _paint = pixel_paint();
 
-  PlasmaShot() {
+  EnemyProjectile() {
     size.setAll(2.7);
     add(CircleHitbox(radius: 2.7, anchor: Anchor.center, isSolid: true));
   }
@@ -25,12 +26,10 @@ class PlasmaShot extends PositionComponent with CollisionCallbacks, Recyclable, 
   double _start_time = 1;
 
   @override
-  double get base_speed => 400 + power_boost * 25 + speed_buff;
+  double get base_speed => 350;
 
-  double speed_buff = 0;
-
-  @override
-  void reset(Target origin, double angle) {
+  // Reset from hostile entity instead of player
+  void reset_from_hostile(Target origin, double angle) {
     super.reset(origin, angle);
     _start_time = 1;
     max_distance = DirectionalProjectile.world_size();
@@ -44,9 +43,9 @@ class PlasmaShot extends PositionComponent with CollisionCallbacks, Recyclable, 
 
   @override
   void render(Canvas canvas) {
-    _paint.color = _blue2;
+    _paint.color = _green2;
     canvas.drawCircle(Offset.zero, 2.3 + _start_time * 2.7, _paint);
-    _paint.color = _blue1;
+    _paint.color = _green1;
     canvas.drawCircle(Offset.zero, 2.0, _paint);
     _paint.color = white;
     canvas.drawCircle(Offset.zero, 1.3, _paint);
@@ -56,9 +55,10 @@ class PlasmaShot extends PositionComponent with CollisionCallbacks, Recyclable, 
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
     if (recycled) return;
-    if (other case Hostile it when it.susceptible) {
+    if (other is Enemy || other is EnemyProjectile) return;
+    if (other case Target it when it.susceptible) {
       final hit_point = it.calculate_hit_point(it, intersectionPoints);
-      it.on_hit(1 * (1 + (power_boost / SecondaryWeapon.max_boosts) * 0.5), hit_point);
+      it.on_hit(10, hit_point);
       recycle();
     }
   }

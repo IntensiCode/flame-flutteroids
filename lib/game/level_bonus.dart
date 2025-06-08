@@ -30,7 +30,6 @@ class LevelBonus extends Component with AutoDispose, GameContext, GameScriptFunc
 
   late final BitmapText _title;
   late final List<BitmapText> _message_lines = [];
-  late final List<BitmapText> _bonus_lines = [];
   late final BitmapText _start;
 
   late final List<LevelGoal> goals;
@@ -87,11 +86,14 @@ class LevelBonus extends Component with AutoDispose, GameContext, GameScriptFunc
     final goal = goals[_current_goal_index];
 
     // Show the goal message
-    final x = position.x + 100;
+    final x = position.x;
     final y = position.y;
 
     // Add the message line
-    _create_text(goal.message, x, y, _message_lines, anchor: Anchor.centerRight);
+    final bonus = '+${goal.bonus}';
+    final placeholder = ''.padRight(bonus.length, ' ');
+    final text = '${goal.message} ... $placeholder';
+    _create_text(text, x, y, _message_lines, anchor: Anchor.center);
 
     // Set state to show bonus after delay
     _showing_bonus = false;
@@ -101,14 +103,16 @@ class LevelBonus extends Component with AutoDispose, GameContext, GameScriptFunc
   void _show_bonus_for_current_goal() {
     if (_current_goal_index >= goals.length) return;
 
+    // Update total bonus with the current goal's bonus
+    final goal = goals[_current_goal_index];
     final goal_bonus = goals[_current_goal_index].bonus;
-    _total_bonus += goal_bonus;
+    _total_bonus += goal.bonus;
 
-    final x = position.x + 120;
-    final y = position.y;
-
-    final bonus_text = '+$goal_bonus';
-    _create_text(bonus_text, x, y, _bonus_lines, anchor: Anchor.centerLeft, scale: 1.2);
+    // Update the message line with the bonus
+    final bonus = '+${goal.bonus}';
+    final text = '${goal.message} ... $bonus';
+    _message_lines.last.change_text_in_place(text);
+    _message_lines.last.fadeInDeep();
 
     // Add the bonus to player score
     player.score += goal_bonus;

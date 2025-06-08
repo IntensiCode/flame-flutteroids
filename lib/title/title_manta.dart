@@ -38,8 +38,9 @@ class TitleManta extends PositionComponent with VoxelRotation {
   void update(double dt) {
     super.update(dt);
     _time += dt;
-    rot_x = sin(_time * 0.1341) * 2 * pi;
-    rot_y = sin(_time * 0.2381) * 2 * pi;
-    rot_z = sin(_time * 0.1982) * 2 * pi;
+    rot_x = rot_y = rot_z = 0;
+    rot_x = pi / 5;
+    rot_y = pi + sin(_time * 0.5) * pi / 8;
+    rot_z = pi / 8 + cos(_time * 0.25) * pi / 5;
   }
 }

@@ -53,7 +53,7 @@ class Explosion extends CircleComponent with Recyclable, WorldEntity {
     paint.color = white;
     paint.isAntiAlias = false;
     paint.filterQuality = FilterQuality.none;
-    paint.shader = _explosion!;
+    paint.shader = _explosion;
   }
 
   @override

@@ -31,33 +31,38 @@ final _hint = {
   _VideoEntry.performance: '''
       Fastest rendering, but less smooth:
       \n\n
-      - Skips most animation frames
-      - Disables exhaust animation
+      - Disables non-essential animations
+      - Disables voxel model exhaust animation
+      - Disables animated space background
       ''',
   _VideoEntry.balanced: '''
       Balanced rendering speed and smoothness:
       \n\n
-      - Skips some animation frames
-      - Disables exhaust animation
+      - Disables non-essential animations
+      - Disables voxel model exhaust animation
       ''',
   _VideoEntry.quality: '''
       Full rendering quality:
       \n\n
-      - Does not skip animation frames
-      - Enables exhaust animation
+      - Everything enabled
       ''',
   _VideoEntry.animate_space: '''
       Animate the space background:
       \n\n
       - Enables animated starfield
-      - May reduce performance slightly
-      - Overrides performance mode
+      - Reduces render performance
+      \n\n
+      Overrides performance mode
       ''',
   _VideoEntry.exhaust_anim: '''
       Enable exhaust animation:
       \n\n
-      - Voxel models will not be animated if disabled
-      - Rendering performance reduced if enabled
+      - Enables Voxel Model animation
+      - Reduces render performance
+      \n\n
+      Overrides performance mode
+      \n\n
+      *Does not work on web for some reason*
       ''',
 };
 
@@ -81,7 +86,7 @@ class VideoMenu extends GameScriptComponent {
     fontSelect(tiny_font, scale: 2);
     textXY('Video Mode', game_center.x, 20, scale: 2, anchor: Anchor.topCenter);
 
-    _preselected ??= switch (guess_video_mode()) {
+    _preselected ??= switch (video_mode.value) {
       VideoMode.performance => _VideoEntry.performance,
       VideoMode.balanced => _VideoEntry.balanced,
       VideoMode.quality => _VideoEntry.quality,
@@ -158,8 +163,8 @@ class VideoMenu extends GameScriptComponent {
       text: _hint[it]!,
       font: mini_font,
       anchor: Anchor.topRight,
-      size: Vector2(240, 128),
-      position: Vector2(game_size.x - 64, 63),
+      size: Vector2(280 + 32, 128),
+      position: Vector2(game_size.x - 32, 63),
     ));
   }
 }

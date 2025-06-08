@@ -13,10 +13,11 @@ mixin DirectionalProjectile on PositionComponent, WorldEntity {
 
   double get base_speed => 500;
 
-  void reset(Player origin, double angle) {
+  void reset(Target origin, double angle) {
     set_direction_angle(angle);
+    world_pos.setFrom(origin.world_pos);
+    position.setFrom(origin.position);
     velocity.add(origin.velocity);
-    world_pos.setZero();
     _travelled_distance = 0;
   }
 

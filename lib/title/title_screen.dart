@@ -5,6 +5,7 @@ import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/background/space.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/common/animated_title.dart';
+import 'package:flutteroids/game/common/configuration.dart';
 import 'package:flutteroids/game/common/screens.dart';
 import 'package:flutteroids/game/common/video_mode.dart';
 import 'package:flutteroids/input/keys.dart';
@@ -44,10 +45,10 @@ class TitleScreen extends GameScriptComponent with HasAutoDisposeShortcuts {
   onLoad() {
     add(_keys);
     add(shared_space);
+    add(TitleAsteroids());
     add(TitleManta()
       ..position.setValues(500, 300)
       ..anchor = Anchor.center);
-    add(TitleAsteroids());
     add(AnimatedTitle(text: 'FLUTTEROIDS', font: menu_font, scale: 2.0)
       ..position.setValues(64, 64)
       ..anchor = Anchor.center);
@@ -57,7 +58,7 @@ class TitleScreen extends GameScriptComponent with HasAutoDisposeShortcuts {
     }
 
     textXY('< Video Mode >', 280, 308, anchor: Anchor.bottomCenter, scale: 1);
-    _video = textXY(guess_video_mode().name, 280, 308 + 12, anchor: Anchor.bottomCenter, scale: 1);
+    _video = textXY(video_mode.value.name, 280, 308 + 12, anchor: Anchor.bottomCenter, scale: 1);
 
     textXY('< Audio Mode >', 280, 340, anchor: Anchor.bottomCenter, scale: 1);
     _audio = textXY(audio.guess_audio_mode.label, 280, 340 + 12, anchor: Anchor.bottomCenter, scale: 1);
@@ -131,7 +132,7 @@ class TitleScreen extends GameScriptComponent with HasAutoDisposeShortcuts {
 
   void _change_video_mode(int add) {
     final values = VideoMode.values;
-    final index = (values.indexOf(guess_video_mode()) + add) % values.length;
+    final index = (values.indexOf(video_mode.value) + add) % values.length;
     apply_video_mode(values[index]);
     _video?.text = values[index].name;
     _video?.fadeInDeep();

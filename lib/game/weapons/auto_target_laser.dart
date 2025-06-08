@@ -85,8 +85,10 @@ class AutoTargetLaser extends PositionComponent with GameContext, PrimaryWeapon,
     }
 
     final dmg = _base_laser_damage + 0.2 * (boost / PrimaryWeapon.max_boosts);
-    target.on_hit(dmg);
-    _target.setFrom((target as WorldEntity).world_pos);
+    // TODO Find position on line crossing hitbox border
+    final hit_point = (target as WorldEntity).world_pos;
+    target.on_hit(dmg, hit_point);
+    _target.setFrom(hit_point);
   }
 
   void _update_scanner_sweep(double dt) {
@@ -101,7 +103,7 @@ class AutoTargetLaser extends PositionComponent with GameContext, PrimaryWeapon,
   void render(Canvas canvas) {
     super.render(canvas);
 
-    canvas.translate(player.size.x * 0.5, player.size.y * 0.5);
+    canvas.translate(player.world_size.x * 0.5, player.world_size.y * 0.5);
     canvas.rotate(-player.angle);
 
     final target_entity = _current_target.$1;
@@ -115,6 +117,6 @@ class AutoTargetLaser extends PositionComponent with GameContext, PrimaryWeapon,
     }
 
     canvas.rotate(player.angle);
-    canvas.translate(-player.size.x * 0.5, -player.size.y * 0.5);
+    canvas.translate(-player.world_size.x * 0.5, -player.world_size.y * 0.5);
   }
 }

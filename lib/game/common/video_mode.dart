@@ -13,8 +13,9 @@ VideoMode guess_video_mode() {
   return VideoMode.quality;
 }
 
-void apply_video_mode(VideoMode video_mode) {
-  switch (video_mode) {
+void apply_video_mode(VideoMode mode) {
+  video_mode.value = mode;
+  switch (mode) {
     case VideoMode.performance:
       bg_anim.value = false;
       exhaust_anim.value = false;
@@ -30,5 +31,5 @@ void apply_video_mode(VideoMode video_mode) {
       exhaust_anim.value = true;
       frame_skip << 0;
   }
-  log_info('$video_mode: $bg_anim $exhaust_anim $frame_skip');
+  log_info('$mode: $bg_anim $exhaust_anim $frame_skip');
 }

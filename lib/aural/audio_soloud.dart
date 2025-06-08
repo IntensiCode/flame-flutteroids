@@ -24,6 +24,19 @@ class PlatformAudioSystem extends AudioSystem {
   }
 
   @override
+  void update_paused(bool paused) {
+    for (final as in soloud.activeSounds) {
+      for (final sh in as.handles) {
+        if (soloud.getPause(sh) == paused) {
+          continue;
+        } else {
+          soloud.pauseSwitch(sh);
+        }
+      }
+    }
+  }
+
+  @override
   double? get active_music_volume {
     final active = _active_music;
     if (active == null) return null;

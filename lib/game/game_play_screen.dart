@@ -1,10 +1,10 @@
+import 'package:flame/components.dart';
 import 'package:flutteroids/aural/audio_system.dart';
 import 'package:flutteroids/background/space.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/asteroids/asteroids.dart';
 import 'package:flutteroids/game/common/decals.dart';
 import 'package:flutteroids/game/common/explosions.dart';
-import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/game_phase.dart';
@@ -15,38 +15,58 @@ import 'package:flutteroids/game/game_screen.dart';
 import 'package:flutteroids/game/info_overlay.dart';
 import 'package:flutteroids/game/level/level.dart';
 import 'package:flutteroids/game/level/warp_transition.dart';
-import 'package:flutteroids/game/level_info.dart';
 import 'package:flutteroids/game/level_bonus.dart';
+import 'package:flutteroids/game/level_info.dart';
 import 'package:flutteroids/game/player/player.dart';
 import 'package:flutteroids/game/player/player_hud.dart';
 import 'package:flutteroids/game/player/player_radar.dart';
 import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/game/world/world_camera.dart';
-import 'package:flutteroids/game/world/world_entity.dart';
+import 'package:flutteroids/ui/fonts.dart';
+import 'package:flutteroids/util/bitmap_text.dart';
+import 'package:flutteroids/util/extensions.dart';
 import 'package:flutteroids/util/log.dart';
 import 'package:flutteroids/util/on_message.dart';
 
 class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
+  Component? _loading;
+
   @override
   Future onLoad() async {
-    await audio.preload();
     await add(space);
+
+    add(_loading = BitmapText(
+      text: 'LOADING...',
+      position: v2(408, 32),
+      font: tiny_font,
+      anchor: Anchor.topCenter,
+    )
+      ..fadeInDeep()
+      ..priority = 1000);
+
+    Future.delayed(Duration(milliseconds: 1)).then(_load);
+  }
+
+  Future _load(dynamic _) async {
+    await audio.preload();
     await add(level);
     await add(world);
-    await world.add(asteroids);
+    await add(camera);
+    await add(explosions); // for preloading the shader
+    await add(asteroids);
+    await add(extras);
+    await add(decals);
     await world.add(player);
-    await world.add(extras);
-    await world.add(decals);
-    await world.add(explosions);
     await world.add(player_radar);
-    await world.add(camera);
     await add(PlayerHud(player));
-    await addAll([InfoOverlay(position: v2(408, game_height / 3))]);
+    await add(InfoOverlay(position: v2(408, game_height / 3)));
   }
 
   @override
   void onMount() {
     super.onMount();
+
+    removeWhere((it) => it == _loading);
 
     if (dev) {
       onKey('<A-c>', () => _on_level_complete());
@@ -56,7 +76,7 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
       onKey('<A-s>', () => player.score += 10000);
       onKey('<A-S-N>', () => change_level(10));
       onKey('<A-S-P>', () => change_level(-10));
-      onKey('<A-x>', () => player.on_hit(100));
+      onKey('<A-x>', () => player.on_hit(100, player.world_pos));
     }
 
     if (phase == GamePhase.inactive) {
@@ -67,9 +87,6 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
     on_message<LevelComplete>((it) => _on_level_complete(it.message));
     on_message<PlayerDestroyed>((_) => _activate_phase(GamePhase.game_over));
     on_message<PlayerLeft>((_) => _on_player_left());
-
-    on_message<AsteroidDestroyed>(_on_asteroid_destroyed);
-    on_message<AsteroidSplit>(_on_asteroid_split);
   }
 
   void _on_level_complete([String? message]) {
@@ -82,39 +99,12 @@ class GamePlayScreen extends GameScreen with GameContext, _GamePhaseTransition {
     _phase_timer = 0.5;
   }
 
-  void _on_asteroid_split(AsteroidSplit msg) {
-    final probability = ((msg.asteroid.split_count + 1) * 0.1).clamp(0.0, 1.0);
-    if (level_rng.nextDouble() > probability) return;
-
-    final it = msg.asteroid;
-    final count = (it.asteroid_radius ~/ 12).clamp(1, 5);
-    final which = extras.choices_for(ExtrasGroup.asteroid_split);
-    _spawn_extras(it, count, which);
-  }
-
-  void _on_asteroid_destroyed(AsteroidDestroyed msg) {
-    final probability = ((msg.asteroid.split_count + 1) * 0.3).clamp(0.0, 1.0);
-    if (level_rng.nextDouble() > probability) return;
-
-    final it = msg.asteroid;
-    final count = (it.asteroid_radius ~/ 8).clamp(1, 5);
-    final which = extras.choices_for(ExtrasGroup.asteroid_destroyed);
-    _spawn_extras(it, count, which);
-  }
-
-  void _spawn_extras(WorldEntity origin, int count, Set<ExtraId> which) {
-    log_debug('Spawning $count extras (which: $which)');
-
-    for (var i = 0; i < count; i++) {
-      extras.spawn(origin, choices: which, index: i, count: count);
-    }
-  }
-
   void change_level(int step) {
     current_level += step;
     if (current_level < 1) current_level = 1;
     show_debug("Entering level $current_level");
-    _activate_phase(phase);
+    level.set_level(current_level);
+    _activate_phase(GamePhase.level_info);
   }
 }
 
@@ -262,11 +252,12 @@ mixin _GamePhaseTransition on GameScreen, GameContext {
   }
 
   void _next_level() {
-    _pending_phase = GamePhase.level_info;
-    _phase_timer = 0.5;
+    log_debug('Advancing to next level');
+    // _pending_phase = GamePhase.level_info;
+    // _phase_timer = 0.5;
     current_level += 1;
     level.set_level(current_level);
-
     show_debug("Next level: $current_level");
+    _activate_phase(GamePhase.level_info);
   }
 }

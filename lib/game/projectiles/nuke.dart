@@ -56,9 +56,10 @@ class Nuke extends PositionComponent with CollisionCallbacks, Recyclable, WorldE
   @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
-    if (recycled || life_time > 0.2) return;
+    if (recycled) return;
+    if (life_time > 0.2) return; // only the initial flash causes damage
     if (other case Hostile it when it.susceptible) {
-      it.on_hit(damage * (1 + (_boost / SecondaryWeapon.max_boosts)));
+      it.on_hit(damage * (1 + (_boost / SecondaryWeapon.max_boosts)), it.world_pos);
     }
   }
 }

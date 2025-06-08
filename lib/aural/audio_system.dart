@@ -118,7 +118,7 @@ abstract class AudioSystem extends Component {
   (String, bool, Hook?)? pending_music;
   double? fade_out_volume;
 
-  void update_paused(bool paused) {}
+  void update_paused(bool paused);
 
   @protected
   double? get active_music_volume;

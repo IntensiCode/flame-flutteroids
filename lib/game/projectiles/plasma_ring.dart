@@ -63,7 +63,8 @@ class PlasmaRing extends PositionComponent with CollisionCallbacks, Recyclable, 
     super.onCollision(intersectionPoints, other);
     if (recycled) return;
     if (other case Hostile it when it.susceptible) {
-      it.on_hit(_damage * 0.5);
+      final hit_point = it.calculate_hit_point(it, intersectionPoints);
+      it.on_hit(_damage * 0.5, hit_point);
     }
   }
 }

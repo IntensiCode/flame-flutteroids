@@ -50,7 +50,7 @@ class PlasmaBlob extends PositionComponent
     _shade.isAntiAlias = false;
   }
 
-  void reset_homing(Player origin, double angle, {double? target_angle, int boost = 0}) {
+  void reset_homing(Target origin, double angle, {double? target_angle, int boost = 0}) {
     super.reset(origin, angle);
     _boost = boost;
 
@@ -115,7 +115,8 @@ class PlasmaBlob extends PositionComponent
     if (recycled) return;
     if (other case Hostile it when it.susceptible) {
       final dmg = 20 + (10 * (_boost / SecondaryWeapon.max_boosts));
-      it.on_hit(dmg);
+      final hit_point = it.calculate_hit_point(it, intersectionPoints);
+      it.on_hit(dmg, hit_point);
       _emit_plasma_ring(this, _boost);
       recycle();
     }

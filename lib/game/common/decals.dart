@@ -6,6 +6,7 @@ import 'package:flame/sprite.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/sound.dart';
+import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 import 'package:flutteroids/util/extensions.dart';
@@ -40,6 +41,24 @@ class Decals extends Component with GameContext {
   final _active = <DecalKind, List<DecalObj>>{};
   final _anim = <DecalKind, SpriteSheet>{};
 
+  List<DecalObj> spawn_multi(
+    DecalKind decal,
+    PositionComponent origin,
+    int count, {
+    Vector2? pos_override,
+    double? pos_range,
+    double? vel_range,
+  }) =>
+      List.generate(
+          count,
+          (_) => spawn(
+                decal,
+                origin,
+                pos_override: pos_override,
+                pos_range: pos_range,
+                vel_range: vel_range,
+              ));
+
   DecalObj spawn(
     DecalKind decal,
     PositionComponent origin, {
@@ -73,9 +92,10 @@ class Decals extends Component with GameContext {
 
     result.size.setAll(switch (decal) {
       DecalKind.dust => 6.0,
+      DecalKind.mini_explosion => 8.0,
       DecalKind.smoke => 6.0,
-      DecalKind.sparkle => 16.0,
-      _ => 32.0,
+      DecalKind.sparkle => 8.0,
+      _ => 12.0,
     });
     result.world_pos.setFrom(start);
     result.velocity.setZero();
@@ -88,7 +108,7 @@ class Decals extends Component with GameContext {
     if (pos_range > 0) result.randomize_position(range: pos_range);
     if (vel_range != null) result.randomize_velocity(range: vel_range);
 
-    parent?.add(result);
+    world.add(result);
     return result;
   }
 

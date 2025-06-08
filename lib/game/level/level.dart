@@ -2,18 +2,22 @@ import 'dart:math';
 
 import 'package:flame/components.dart';
 import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/extra_id.dart';
 import 'package:flutteroids/game/common/game_context.dart';
+import 'package:flutteroids/game/common/game_phase.dart';
 import 'package:flutteroids/game/common/messages.dart';
+import 'package:flutteroids/game/enemies/ufo_enemy.dart';
+import 'package:flutteroids/game/level/acquire_ion_pulse_gun.dart';
 import 'package:flutteroids/game/level/boost_plasma_gun.dart';
 import 'package:flutteroids/game/level/level_goal.dart';
+import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/util/log.dart';
-import 'package:flutteroids/util/messaging.dart';
 
 extension GameContextExtensions on GameContext {
   Level get level => cache.putIfAbsent('level', () => Level());
 }
 
-class Level extends Component {
+class Level extends Component with GameContext {
   late int current_level;
   late double max_asteroid_mass;
   late int max_total_asteroids;
@@ -37,6 +41,8 @@ class Level extends Component {
   Iterable<LevelGoal> get completed_goals => children.whereType<LevelGoal>().where((goal) => goal.completed);
 
   void set_level(int level) {
+    log_debug('Setting level to $level');
+
     level_rng = Random(level);
 
     current_level = level;
@@ -46,14 +52,24 @@ class Level extends Component {
     _notified = false;
 
     removeAll(children);
-    add(primary_goal = primary_goal_for_level(level));
 
     // TODO Add more primary goals
     // TODO Add secondary goals
-  }
+    // TODO How to handle enemies? Here? Or dedicated spawner? Linked to the level somehow?
 
-  LevelGoal primary_goal_for_level(int level) {
-    return BoostPlasmaGun();
+    switch (level) {
+      case 1:
+        add(primary_goal = BoostPlasmaGun());
+
+      case 2:
+        add(SpawnIonPulseGunCarryingUfos());
+        add(primary_goal = AcquireIonPulseGun());
+
+      default:
+        add(SpawnIonPulseGunCarryingUfos());
+        add(BoostPlasmaGun());
+        add(AcquireIonPulseGun());
+    }
   }
 
   @override
@@ -62,6 +78,22 @@ class Level extends Component {
       log_debug('Level $current_level completed');
       send_message(LevelComplete(message));
       _notified = true;
+    }
+  }
+}
+
+class SpawnIonPulseGunCarryingUfos extends Component with GameContext {
+  UfoEnemy? _spawned;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    if (stage.phase != GamePhase.play_level) return;
+
+    if (_spawned == null || _spawned!.recycled) {
+      log_debug('Spawning UFO Enemy from $this $hashCode');
+      world.add(_spawned = UfoEnemy()..spawning = {ExtraId.ion_pulse});
     }
   }
 }

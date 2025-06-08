@@ -3,11 +3,15 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/game/asteroids/asteroid.dart';
+import 'package:flutteroids/game/common/extra_id.dart';
+import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/game_phase.dart';
 import 'package:flutteroids/game/common/messages.dart';
 import 'package:flutteroids/game/level/level.dart';
+import 'package:flutteroids/game/world/world.dart';
 import 'package:flutteroids/game/world/world_bounds.dart';
+import 'package:flutteroids/game/world/world_entity.dart';
 import 'package:flutteroids/util/auto_dispose.dart';
 import 'package:flutteroids/util/component_recycler.dart';
 import 'package:flutteroids/util/log.dart';
@@ -56,7 +60,7 @@ class Asteroids extends Component with AutoDispose, GameContext {
       asteroid.velocity.scale(speed * speed_multiplier);
     }
 
-    parent?.add(asteroid);
+    world.add(asteroid);
     _active.add(asteroid);
 
     return asteroid;
@@ -75,6 +79,37 @@ class Asteroids extends Component with AutoDispose, GameContext {
         _notified_clear = false;
       }
     });
+
+    on_message<AsteroidDestroyed>(_on_asteroid_destroyed);
+    on_message<AsteroidSplit>(_on_asteroid_split);
+  }
+
+  void _on_asteroid_split(AsteroidSplit msg) {
+    final probability = ((msg.asteroid.split_count + 1) * 0.05).clamp(0.0, 1.0);
+    if (level_rng.nextDouble() > probability) return;
+
+    final it = msg.asteroid;
+    final count = (it.asteroid_radius ~/ 12).clamp(1, 5);
+    final which = extras.choices_for(ExtrasGroup.asteroid_split);
+    _spawn_extras(it, count, which);
+  }
+
+  void _on_asteroid_destroyed(AsteroidDestroyed msg) {
+    final probability = ((msg.asteroid.split_count + 1) * 0.1).clamp(0.0, 1.0);
+    if (level_rng.nextDouble() > probability) return;
+
+    final it = msg.asteroid;
+    final count = (it.asteroid_radius ~/ 8).clamp(1, 5);
+    final which = extras.choices_for(ExtrasGroup.asteroid_destroyed);
+    _spawn_extras(it, count, which);
+  }
+
+  void _spawn_extras(WorldEntity origin, int count, Set<ExtraId> which) {
+    log_debug('Spawning $count extras (which: $which)');
+
+    for (var i = 0; i < count; i++) {
+      extras.spawn(origin, choices: which, index: i, count: count);
+    }
   }
 
   @override
@@ -86,12 +121,13 @@ class Asteroids extends Component with AutoDispose, GameContext {
       case GamePhase.level_bonus:
       case GamePhase.game_over:
         return;
+
       case GamePhase.level_complete:
         if (_active.isEmpty && !_notified_clear) {
           _notified_clear = true;
           send_message(AsteroidFieldCleared());
         }
-        return;
+
       case GamePhase.enter_level:
       case GamePhase.play_level:
         _maintain_asteroid_count();

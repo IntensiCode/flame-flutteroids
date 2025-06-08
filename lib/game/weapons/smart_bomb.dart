@@ -73,10 +73,12 @@ class _DestroyEverything extends Component with Recyclable, HasPaint {
     if (_life_time > 1) recycle();
     if (_life_time > 0.5 && _life_time < 0.6) {
       for (final it in world.children.whereType<Hostile>()) {
-        if (it.susceptible)
-          it.on_hit(10);
-        else
+        if (it.susceptible) {
+          // Use the hostile entity's position as hit point since this is an area effect
+          it.on_hit(10, it.world_pos);
+        } else {
           log_info('Smart bomb skipped $it, not susceptible');
+        }
       }
     }
   }

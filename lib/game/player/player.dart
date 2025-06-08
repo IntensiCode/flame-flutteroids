@@ -8,17 +8,20 @@ import 'package:flutteroids/game/common/configuration.dart';
 import 'package:flutteroids/game/common/decals.dart';
 import 'package:flutteroids/game/common/explosions.dart';
 import 'package:flutteroids/game/common/extra_id.dart';
+import 'package:flutteroids/game/common/extras.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/game_phase.dart';
 import 'package:flutteroids/game/common/kinds.dart';
 import 'package:flutteroids/game/common/messages.dart';
 import 'package:flutteroids/game/common/sound.dart';
+import 'package:flutteroids/game/common/target_collisions.dart';
 import 'package:flutteroids/game/common/voxel_entity.dart';
 import 'package:flutteroids/game/common/voxel_rotation.dart';
 import 'package:flutteroids/game/player/deflector_shield.dart';
 import 'package:flutteroids/game/player/weapon_system.dart';
 import 'package:flutteroids/input/game_keys.dart';
 import 'package:flutteroids/util/auto_dispose.dart';
+import 'package:flutteroids/util/component_recycler.dart';
 import 'package:flutteroids/util/log.dart';
 import 'package:flutteroids/util/mutable.dart';
 import 'package:flutteroids/util/on_message.dart';
@@ -46,7 +49,10 @@ class AsteroidsPlayer extends PositionComponent
         GameContext,
         HasVisibility,
         VoxelRotation,
-        OnHit,
+        Target,
+        CollisionCallbacks,
+        Recyclable,
+        TargetCollisions,
         Friendly,
         _PlayerMovement,
         _PlayerUTurn,
@@ -64,13 +70,21 @@ class AsteroidsPlayer extends PositionComponent
   bool get weapons_hot => state == _State.playing && !is_turning;
 
   @override
-  Vector2 get world_pos => position;
+  Vector2 get world_pos => v2z_; // position;
+
+  @override
+  Vector2 get world_size => size;
 
   @override
   double get integrity => remaining_hit_points / max_hit_points;
 
   late final weapon_system = WeaponSystem(this);
   late final deflector_shield = DeflectorShield(this, source_size: size);
+
+  @override
+  void spawn_damage_decals(double damage, Vector2 hit_point) {
+    decals.spawn(DecalKind.mini_explosion, this, pos_override: hit_point, pos_range: size.x / 3);
+  }
 
   @override
   Future<void> onLoad() async {
@@ -94,7 +108,8 @@ class AsteroidsPlayer extends PositionComponent
 
     await add(CircleHitbox(
       radius: size.x * 0.35,
-      collisionType: CollisionType.passive,
+      collisionType: CollisionType.active,
+      isSolid: true, // better? for projectiles?
     )
       ..position.setAll(size.x * 0.15)
       ..x += 4);
@@ -185,6 +200,8 @@ class AsteroidsPlayer extends PositionComponent
         return; // Skip _PlayerMovement.update
 
       case _State.playing:
+        remaining_hit_points = min(remaining_hit_points + 1 * dt, max_hit_points);
+
         if (jumping_countdown > 0) {
           jumping_countdown = max(0, jumping_countdown - dt);
           if (jumping_countdown <= 0) {
@@ -231,10 +248,10 @@ class AsteroidsPlayer extends PositionComponent
   bool get susceptible => state == _State.playing && !is_elevated;
 
   @override
-  void on_hit(double damage) {
+  void on_hit(double damage, Vector2 hit_point) {
     if (is_destroyed) return;
 
-    super.on_hit(damage);
+    super.on_hit(damage, hit_point);
 
     if (is_destroyed) {
       removeWhere((it) => it is CircleHitbox);
@@ -273,5 +290,25 @@ class AsteroidsPlayer extends PositionComponent
         weapon_system.on_cooldown();
     }
     send_message(ExtraCollected(which));
+  }
+
+  @override
+  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
+    super.onCollisionStart(intersectionPoints, other);
+
+    if (!isVisible || state != _State.playing) return;
+
+    if (other case Enemy it when it.susceptible) {
+      log_debug('Collision: ${it.runtimeType} Taking: ${it.remaining_hit_points} Dealing: $remaining_hit_points');
+      final hit_point = calculate_hit_point(it, intersectionPoints);
+      on_hit(it.remaining_hit_points, hit_point);
+      it.on_hit(remaining_hit_points, hit_point);
+    }
+
+    if (other case Extra it when !it.recycled) {
+      log_debug('Collision: Extra $it');
+      on_collect_extra(it.which);
+      it.recycle();
+    }
   }
 }

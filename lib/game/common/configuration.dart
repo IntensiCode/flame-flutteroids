@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:dart_extensions_methods/dart_extension_methods.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutteroids/core/common.dart';
+import 'package:flutteroids/game/common/video_mode.dart';
 import 'package:flutteroids/input/game_pads.dart';
 import 'package:flutteroids/util/auto_dispose.dart';
 import 'package:flutteroids/util/extensions.dart';
@@ -13,13 +14,15 @@ import 'package:supercharged/supercharged.dart';
 
 final configuration = Configuration._();
 
-final debug = Configurable<bool>('debug', [false, true], preset: false);
+final debug = Configurable('debug', [false, true], preset: false);
+final video_mode = Configurable('video_mode', VideoMode.values, preset: VideoMode.balanced);
 final bg_anim = Configurable('bg_anim', [false, true], preset: true);
 final exhaust_anim = Configurable('exhaust_anim', [false, true], preset: !kIsWeb);
 final frame_skip = Configurable('frame_skip', [0, 1, 2, 4], preset: kIsWeb ? 2 : 0);
 
 final _all = [
   debug,
+  video_mode,
   bg_anim,
   exhaust_anim,
   frame_skip,
@@ -78,7 +81,7 @@ class Configuration with HasGameData {
     _loaded.clear();
 
     for (final c in _all) {
-      c.value = data[c.key] ?? c.value;
+      c.from_json(data[c.key]);
       _loaded[c.key] = c.value;
     }
 
@@ -93,16 +96,11 @@ class Configuration with HasGameData {
 
   @override
   GameData save_state(Map<String, dynamic> data) => data
-    ..addAll({for (final c in _all) c.key: c.value})
+    ..addAll({for (final c in _all) c.key: c.to_json()})
     ..['hw_mapping'] = hw_mapping.map((k, v) => MapEntry(k.toString(), v.name));
 }
 
 class Configurable<T> {
-  final String key;
-  final List<T> values;
-  final T? _preset;
-  T _value;
-
   Configurable(this.key, this.values, {T? preset})
       : _value = preset ?? values.first,
         _preset = preset {
@@ -111,13 +109,33 @@ class Configurable<T> {
     }
   }
 
+  final _on_change = <Function(T)>[];
+
+  final String key;
+  final List<T> values;
+  final T? _preset;
+  T _value;
+
+  dynamic to_json() => _value is Enum ? (_value as Enum).name : _value;
+
+  void from_json(dynamic json) {
+    if (json is String && values.first is Enum) {
+      _value = values.firstWhere((it) => (it as Enum).name == json, orElse: () => _preset ?? values.first);
+    } else if (values.contains(json)) {
+      _value = json;
+    } else if (_preset != null) {
+      _value = _preset;
+    } else {
+      throw ArgumentError('Invalid value from JSON: $json');
+    }
+  }
+
   T get value => _value;
 
   set value(T new_value) {
-    if (dev) log_verbose('Setting $key to $new_value');
-    if (new_value is String || values.first is EnumProperty) {
-      _value = values.firstWhere((it) => (it as EnumProperty).name == new_value);
-    } else if (values.contains(new_value)) {
+    if (dev) log_debug('Setting $key to $new_value');
+
+    if (values.contains(new_value)) {
       _value = new_value;
     } else if (new_value == null && _preset != null) {
       _value = _preset;
@@ -126,8 +144,6 @@ class Configurable<T> {
     }
     _on_change.forEach((it) => it(_value));
   }
-
-  final _on_change = <Function(T)>[];
 
   Disposable on_change(Function(T) listener) {
     _on_change.add(listener);

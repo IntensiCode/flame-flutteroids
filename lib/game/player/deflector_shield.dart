@@ -5,6 +5,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutteroids/core/common.dart';
 import 'package:flutteroids/core/traits.dart';
+import 'package:flutteroids/game/common/decals.dart';
 import 'package:flutteroids/game/common/game_context.dart';
 import 'package:flutteroids/game/common/kinds.dart';
 import 'package:flutteroids/game/common/messages.dart';
@@ -13,12 +14,12 @@ import 'package:flutteroids/util/extensions.dart';
 import 'package:flutteroids/util/mutable.dart';
 import 'package:flutteroids/util/uniforms.dart';
 
-class DeflectorShield extends PositionComponent with GameContext, HasPaint, HasTraits, Integrity, OnHit {
+class DeflectorShield extends PositionComponent with GameContext, HasPaint, HasTraits, Target, Friendly {
   //
 
   static final _paint = pixel_paint();
 
-  final OnHit carrier;
+  final Target carrier;
   late final FragmentShader _shader;
 
   double _energy = 1;
@@ -31,10 +32,25 @@ class DeflectorShield extends PositionComponent with GameContext, HasPaint, HasT
   double get energy => _energy;
 
   @override
+  Vector2 get velocity => carrier.velocity;
+
+  @override
+  Vector2 get world_pos => carrier.world_pos;
+
+  @override
+  Vector2 get world_size => size;
+
+  @override
   double get integrity => _energy.clamp(0, 1);
 
   @override
   bool get susceptible => _energy > 0.1 && carrier.susceptible;
+
+  @override
+  double get remaining_hit_points => carrier.remaining_hit_points;
+
+  @override
+  double get max_hit_points => carrier.max_hit_points;
 
   DeflectorShield(this.carrier, {required Vector2 source_size}) {
     size = source_size;
@@ -68,8 +84,13 @@ class DeflectorShield extends PositionComponent with GameContext, HasPaint, HasT
   @override
   void update(double dt) {
     super.update(dt);
-    _energy = min(1, _energy + dt * auto_recharge);
+    if (carrier.is_destroyed) {
+      _deflect_time = 0;
+      _energy = 0;
+      return;
+    }
 
+    _energy = min(1, _energy + dt * auto_recharge);
     if (_deflect_time > 0) {
       _deflect_time -= dt;
       _rotate_time += dt;
@@ -82,7 +103,12 @@ class DeflectorShield extends PositionComponent with GameContext, HasPaint, HasT
   }
 
   @override
-  void on_hit(double damage) {
+  void spawn_damage_decals(double damage, Vector2 hit_point) {
+    decals.spawn(DecalKind.smoke, this, pos_override: hit_point);
+  }
+
+  @override
+  void on_hit(double damage, Vector2 hit_point) {
     if (carrier case HasVisibility it) {
       if (!it.isVisible) return;
     }
@@ -100,14 +126,15 @@ class DeflectorShield extends PositionComponent with GameContext, HasPaint, HasT
 
       play_sound(Sound.plasma, volume_factor: 0.25);
     } else {
-      carrier.on_hit(damage);
+      carrier.on_hit(damage, hit_point);
     }
   }
 
   void _on_depleted() {
     final danger = 5;
     final remaining = max(0.0, _energy.abs() - 5);
-    carrier.on_hit(remaining * danger);
+    // Use the shield's position as hit point since this is shield depletion damage
+    carrier.on_hit(remaining * danger, world_pos);
     _energy = max(-5, _energy / 10);
 
     send_message(Rumble(duration: 0.2, haptic: false));
@@ -124,16 +151,5 @@ class DeflectorShield extends PositionComponent with GameContext, HasPaint, HasT
     _rect.right = size.x;
     _rect.bottom = size.y;
     canvas.drawRect(_rect, _paint);
-
-    // final image = pixelate(size.x.toInt(), size.y.toInt(), (canvas) {
-    //   _rect.right = size.x;
-    //   _rect.bottom = size.y;
-    //   _paint.opacity = _deflect_time > 0 ? 0.75 : 0.05;
-    //   _paint.shader = _shader;
-    //   canvas.drawRect(_rect, _paint);
-    // });
-    //
-    // canvas.drawImage(image, Offset.zero, paint);
-    // image.dispose();
   }
 }
