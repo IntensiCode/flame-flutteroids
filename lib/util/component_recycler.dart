@@ -13,7 +13,7 @@ class ComponentRecycler<T extends Recyclable> {
   final T Function() _create;
   final Function(T)? _custom_recycle;
 
-  final items = <T>[];
+  final items = <T>{};
 
   void precreate(int count) {
     for (var i = 0; i < count; i++) {
@@ -25,7 +25,9 @@ class ComponentRecycler<T extends Recyclable> {
 
   T acquire() {
     if (items.isNotEmpty) {
-      return items.removeLast()..recycled = false;
+      final it = items.last;
+      items.remove(it);
+      return it..recycled = false;
     } else {
       final it = _create();
       if (dev) log_warn('pool empty, creating new instance - ${it.runtimeType}');
@@ -35,11 +37,16 @@ class ComponentRecycler<T extends Recyclable> {
   }
 
   void recycle(T component) {
-    // if (component.recycled && dev) {
-    //   if (component.isMounted && !component.isRemoving) throw 'no no';
-    //   if (!_pool.contains(component)) throw 'oh no no';
-    //   if (_pool.contains(component)) log_error('ignore duplicate recycle: $component', StackTrace.current);
-    // }
+    if (component.recycled && dev) {
+      log_stack_trace(
+        'recycle called on already recycled component: ${component.runtimeType}\n'
+        'mounted: ${component.isMounted}, removing: ${component.isRemoving}'
+        'in pool: ${items.contains(component)}',
+      );
+      //   if (component.isMounted && !component.isRemoving) throw 'no no';
+      //   if (!_pool.contains(component)) throw 'oh no no';
+      //   if (_pool.contains(component)) log_error('ignore duplicate recycle: $component', StackTrace.current);
+    }
 
     if (component.isMounted) component.removeFromParent();
     if (!component.recycled && !items.contains(component)) items.add(component);
